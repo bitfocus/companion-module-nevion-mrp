@@ -1,16 +1,18 @@
 {
-  "name": "nevion-mrp",
-  "version": "1.0.1",
+	"name": "nevion-mrp",
+	"version": "1.0.2",
 	"api_version": "1.0.0",
-	"keywords": [ "Matrix" ],
+	"keywords": [
+		"Matrix"
+	],
 	"manufacturer": "Nevion",
 	"product": "MRP / Multicon",
 	"shortname": "nevion",
-  "description": "Nevion Modular Routing protocol support",
-  "main": "multicon.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "William Viker <william.viker@gmail.com>",
-  "license": "MIT"
+	"description": "Nevion Modular Routing protocol support",
+	"main": "multicon.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "William Viker <william.viker@gmail.com>",
+	"license": "MIT"
 }
