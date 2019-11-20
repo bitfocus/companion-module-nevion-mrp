@@ -1,0 +1,27 @@
+# companion-module-nevion-mrp
+
+For more info take a look at the file: "Help.md"
+
+Module to control various Nevion Videohubs via the closed MRP protocol. It reads the number of inputs and outputs from the unit and is based around the functionality in the BMD Videohub module.
+
+(Be aware this is based on reverse-engineered commands)
+
+**V1.0.0**
+* Initial Module
+
+**V1.0.1**
+* Indentation fixes
+
+**V1.0.2**
+* Added License
+
+**V1.0.2**
+* Added License
+
+**V2.0.0**
+* Some Rewriting
+* Added Readme.md
+* Added Help.md
+* Added feedback 
+* Added Presets
+* Added XY, take and clear commands for better control (based of bmd videohub)

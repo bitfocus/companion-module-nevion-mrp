@@ -13,27 +13,32 @@ function instance(system, id, config) {
 	self.defineConst('STATE_RECEIVING', 2);
 	self.defineConst('STATE_WAITING', 3);
 
+//	self.update_variables(); 	// Export Variables
+//	self.init_feedback();			// Export Feedbacks
+//	self.checkFeedbacks();		// Export Feedbacks
+// self.actions_delayed(); 	// Export Actions
+//	self.init_presets();			// Export Presets
+
 	return self;
 }
 
 instance.prototype.updateConfig = function(config) {
 	var self = this;
-	self.updateDropD()
 	self.config = config;
 	self.init_tcp();
+	self.update_variables();
+	self.init_feedback();
+	self.checkFeedbacks();
 	self.actions();
-};
-
-instance.prototype.updateDropD = function() {
-	var self = this;
-
-
+	self.init_presets();
 };
 
 instance.prototype.init = function() {
 	var self = this;
 	debug = self.debug;
+	//debug = console.log; // Spam console with debug
 	log = self.log;
+
 	self.message_command = [];
 	self.message_queue = [];
 	self.first = true;
@@ -41,14 +46,25 @@ instance.prototype.init = function() {
 	self.login = false;
 	self.delta = "";
 	self.data = {};
+
+	self.selected     = 0;
+	self.queue        = '';
+	self.queuedDest   = -1;
+	self.queuedSource = -1;
+
 	self.status(1,'Connecting'); // status ok!
-	self.updateDropD()
 	self.init_tcp();
-	self.actions_delayed(); // export actions
+//	self.update_variables(); 	// Export Variables
+//	self.init_feedback();			// Export Feedbacks
+//	self.checkFeedbacks();		// Export Feedbacks
+	self.actions_delayed(); 	// Export Actions
+//	self.init_presets();			// Export Presets
 };
 
 instance.prototype.init_tcp = function() {
 	var self = this;
+
+	debug('init tcp');
 
 	if (self.socket !== undefined) {
 		self.socket.destroy();
@@ -59,7 +75,7 @@ instance.prototype.init_tcp = function() {
 
 	if (self.config.host) {
 
-		self.socket = new tcp(self.config.host, 4381);
+		self.socket = new tcp(self.config.host, self.config.port);
 
 		self.socket.on('status_change', function (status, message) {
 			self.status(status, message);
@@ -112,7 +128,6 @@ instance.prototype.init_tcp = function() {
 	}
 };
 
-
 // A function for throttling the number of action updates.
 instance.prototype.actions_delayed = function() {
 	var self = this;
@@ -122,7 +137,11 @@ instance.prototype.actions_delayed = function() {
 	}
 
 	self.actionstimer = setTimeout(function(me) {
-		me.actions();
+		me.update_variables(); 	// Export Variables
+		me.init_feedback();			// Export Feedbacks
+		me.checkFeedbacks();		// Export Feedbacks
+		me.actions();						// Export Actions
+		me.init_presets();			// Export Presets
 	}, 50, self);
 
 };
@@ -139,6 +158,7 @@ instance.prototype.nevion_read_inlist = function(msg) {
 
 	for (var n in inlist) {
 		self.nevion_read_in(inlist[n]);
+		debug('inlist: ' + inlist[n]);
 	}
 
 }
@@ -153,6 +173,7 @@ instance.prototype.nevion_read_outlist = function(msg) {
 
 	for (var n in outlist) {
 		self.nevion_read_out(outlist[n]);
+		debug('outlist: ' + outlist[n]);
 	}
 
 }
@@ -179,7 +200,13 @@ instance.prototype.nevion_read_llist = function(msg) {
 		self.socket.send("inlist " + level + "\n\n" );
 		self.socket.send("outlist " + level + "\n\n" );
 		self.socket.send("s " + level + "\n\n" );
-	}
+
+		//console.log('data.l: ' +	l);
+		//console.log('data.l[level]: ' +	level);
+		//console.log('data.l.size: ' +	self.data.l[level].size);
+		//console.log('data.l.type: ' +	self.data.l[level].type);
+		//console.log('data.l.desc: ' +	self.data.l[level].desc);
+}
 
 	// Update actionlist with new info
 	self.actions_delayed();
@@ -200,10 +227,15 @@ instance.prototype.nevion_read_out = function(msg) {
 
 		self.data.out[arr[1]][arr[2]] = {
 			name: arr[3],
-			unknown_1: arr[4],
+			long_name: arr[4],
 			desc: arr[5],
-			unknown_2: arr[6]
+			unknown: arr[6]
 		};
+
+		//console.log('data.out.name: ' +	self.data.out[arr[1]][arr[2]].name);
+		//console.log('data.out.long_name: ' +	self.data.out[arr[1]][arr[2]].long_name);
+		//console.log('data.out.desc: ' +	self.data.out[arr[1]][arr[2]].desc);
+		//console.log('data.out.unknown: ' +	self.data.out[arr[1]][arr[2]].unknown);
 
 	}
 
@@ -229,10 +261,15 @@ instance.prototype.nevion_read_in = function(msg) {
 
 		self.data.in[arr[1]][arr[2]] = {
 			name: arr[3],
-			unknown_1: arr[4],
+			long_name: arr[4],
 			desc: arr[5],
-			unknown_2: arr[6]
+			unknown: arr[6]
 		};
+
+		//console.log('data.in.name: ' +	self.data.in[arr[1]][arr[2]].name);
+		//console.log('data.in.long_name: ' +	self.data.in[arr[1]][arr[2]].long_name);
+		//console.log('data.in.desc: ' +	self.data.in[arr[1]][arr[2]].desc);
+		//console.log('data.in.unknown: ' +	self.data.in[arr[1]][arr[2]].unknown);
 
 	}
 
@@ -261,6 +298,12 @@ instance.prototype.nevion_read_sspi = function(msg) {
 
 	self.data.sspi[arr[1]][arr[2]] = arr[3];
 
+	//console.log('sspi: ' + arr[0]);
+	//console.log('sspi: ' + arr[1]);
+	//console.log('sspi: ' + arr[3]);
+	//console.log('sspi: ' + arr[2]);
+	//console.log('sspi: ' + 	self.data.sspi[arr[1]][arr[2]]);
+	
 }
 
 // Login
@@ -293,7 +336,6 @@ instance.prototype.nevion_read_login = function(msg) {
 
 }
 
-
 // Entire X list for level
 instance.prototype.nevion_read_s = function(msg) {
 
@@ -304,6 +346,7 @@ instance.prototype.nevion_read_s = function(msg) {
 
 	for (var n in xlist) {
 		self.nevion_read_x(xlist[n]);
+		debug('Xlist: ' + xlist[n]);
 	}
 
 }
@@ -323,6 +366,10 @@ instance.prototype.nevion_read_x = function(msg) {
 	//   ^level ^output ^input
 
 	self.data.x[arr[1]][arr[3]] = arr[2];
+	debug('data.x: ' + self.data.x[arr[1]][arr[3]]);
+	self.checkFeedbacks();
+	self.checkFeedbacks(arr[1] + '_selected_source');
+	self.checkFeedbacks(arr[1] + '_input_bg');
 
 }
 
@@ -342,7 +389,7 @@ instance.prototype.process_nevion_message = function() {
 				self['nevion_read_' + match[1]](cmd);
 			}
 			else {
-				console.log("nevion missing function:",match[1]);
+//				console.log("nevion missing function:",match[1]);
 			}
 		}
 	}
@@ -353,7 +400,7 @@ instance.prototype.process_nevion_message = function() {
 				self['nevion_read_' + match[1]](cmd);
 			}
 			else {
-				console.log("nevion missing function:",match[1]);
+//				console.log("nevion missing function:",match[1]);
 			}
 		}
 	}
@@ -426,6 +473,28 @@ instance.prototype.config_fields = function () {
 		},
 		{
 			type: 'textinput',
+			id: 'port',
+			label: 'Target Port (4381)',
+			default: '4381',
+			width: 4,
+			regex: self.REGEX_PORT
+		},
+		{
+			type: 'checkbox',
+			id: 'take',
+			label: 'Enable Take? (XY only)',
+			width: 4,
+			default: false,
+		},
+		{
+			type: 'text',
+			id: 'info',
+			width: 12,
+			label: 'Information',
+			value: 'Please provide the necessary login credentials below.'
+		},
+		{
+			type: 'textinput',
 			id: 'user',
 			label: 'Username',
 			width: 4,
@@ -437,7 +506,6 @@ instance.prototype.config_fields = function () {
 			width: 4,
 		}
 	];
-
 };
 
 // When module gets deleted
@@ -451,17 +519,17 @@ instance.prototype.destroy = function() {
 	debug("destroy", self.id);;
 };
 
-
-
-
 instance.prototype.actions = function(system) {
 	var self = this;
-
 	var actionlist = {};
-	for (var l in self.data.l) {
-		var inlist = [];
-		var outlist = [];
 
+	debug('init actions');
+
+	var inlist = [];
+	var outlist = [];
+
+	for (var l in self.data.l) {
+			
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s) + 1;
@@ -474,10 +542,18 @@ instance.prototype.actions = function(system) {
 			outlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
 
-		actionlist['route_'+l] = {
+/*		
+		console.log('Debug Input/Output Data:')
 
+		for (var i in inlist) {
+			console.log('Input nr ' + i + ': id: %s, label: %s', inlist[i].id, inlist[i].label);
+		}
+		for (var i in outlist) {
+			console.log('Output nr ' + i + ': id: %s, label: %s', outlist[i].id, outlist[i].label);
+		}
+*/
+		actionlist['route_' + l] = {
 			label: 'Route ' + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc,
-
 			options: [
 				{
 					type: 'dropdown',
@@ -494,29 +570,662 @@ instance.prototype.actions = function(system) {
 					choices: outlist
 				}
 			]
-
 		};
 
+		actionlist['select_destination_' + l] = {
+			label: 'Select destination ' + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc,
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Destination',
+					id: 'destination',
+					default: '0',
+					choices: outlist
+				}
+			]
+		};
+
+		actionlist['route_source_' + l] = {
+			label: 'Route source to selected destination '  + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc,
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Source',
+					id: 'source',
+					default: '0',
+					choices: inlist
+				}
+			]
+		};
+
+		actionlist['take_' + l]  = { 
+			label: 'Take '  + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc 
+		};
+
+		actionlist['clear_' + l] = { 
+			label: 'Clear '  + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc 
+		};
 	}
 
+//	self.update_variables(); 	// Export Variables
+//	self.checkFeedbacks();		// Export Feedbacks
+//	self.init_presets();			// Export Presets
 	self.system.emit('instance_actions', self.id, actionlist);
 };
 
 
 instance.prototype.action = function(action) {
 	var self = this;
-	var opt = action.options
+	var opt = action.options;
 	var cmd = "";
 	var level;
 
-	// Route
-	if (level = action.action.match(/^route_(.+)$/)) {
-		cmd = "x " + level[1] + " " + action.options.source + " " + action.options.destination;
-	}
+	var inlist = [];
+	var outlist = [];
 
+	for (var l in self.data.l) {
+
+		for (var s in self.data.in[l]) {
+			var dat = self.data.in[l][s];
+			var num = parseInt(s) + 1;
+			inlist[s] = { id: s, label: num + ': ' + dat.name }
+		}
+
+		for (var s in self.data.out[l]) {
+			var dat = self.data.out[l][s];
+			var num = parseInt(s) + 1;
+			outlist[s] = { id: s, label: num + ': ' + dat.name }
+		}
+	
+		switch (action.action) {
+			case 'select_destination_'+l:
+				self.selected = opt.destination;
+				self.setVariable(l + '_selected_destination', outlist[self.selected].label);
+				self.checkFeedbacks(l + '_selected_destination');
+				self.checkFeedbacks(l + '_take_tally_source');
+				self.checkFeedbacks(l + '_selected_source');
+				debug('action: select_destination_'+l);
+				debug('selected: ' + self.selected);
+				break;
+
+			case 'route_source_'+l:
+				if (self.config.take === true) {
+					self.queue = "x " + l + " " + opt.source + " " + self.selected;
+					self.queuedDest = self.selected;
+					self.queuedSource = opt.source;
+					self.checkFeedbacks(l + '_take');
+					self.checkFeedbacks(l + '_take_tally_source');
+					self.checkFeedbacks(l + '_take_tally_dest');
+					self.checkFeedbacks(l + '_take_tally_route');
+					self.checkFeedbacks(l + '_input_bg');
+					self.setVariable(l + '_selected_destination', outlist[self.queuedDest].label);
+					self.setVariable(l + '_selected_source', inlist[self.queuedSource].label);
+				}
+				else {
+					cmd = "x " + l + " " + opt.source + " " + self.selected;
+				}
+				debug(l + '_action: route_source_'+l);
+				debug(l + '_selected: ' + self.selected);
+				debug(l + '_que dest: ' + self.queuedDest);
+				debug(l + '_que source: ' + self.queuedSource);
+				break;
+		
+
+			case 'take_'+l:
+				cmd = self.queue;
+				self.queue = '';
+				self.queuedDest = -1;
+				self.queuedSource = -1;
+				self.checkFeedbacks(l + '_take');
+				self.checkFeedbacks(l + '_take_tally_source');
+				self.checkFeedbacks(l + '_take_tally_dest');
+				self.checkFeedbacks(l + '_take_tally_route');
+				self.checkFeedbacks(l + '_input_bg');
+				debug('action: take_'+l);
+				break;
+			
+			case 'clear_'+l:
+				self.queue = '';
+				self.queuedDest = -1;
+				self.queuedSource = -1;
+				self.checkFeedbacks(l + '_take');
+				self.checkFeedbacks(l + '_take_tally_source');
+				self.checkFeedbacks(l + '_take_tally_dest');
+				self.checkFeedbacks(l + '_take_tally_route');
+				self.checkFeedbacks(l + '_input_bg');
+				debug('action: clear_'+l);
+				break;
+
+			default:
+				// Route
+				if (level = action.action.match(/^route_(.+)$/)) {
+					cmd = "x " + level[1] + " " + opt.source + " " + opt.destination;
+					self.checkFeedbacks(l + '_take');
+					self.checkFeedbacks(l + '_take_tally_source');
+					self.checkFeedbacks(l + '_take_tally_dest');
+					self.checkFeedbacks(l + '_take_tally_route');
+					self.checkFeedbacks(l + '_input_bg');
+					self.checkFeedbacks(l + '_selected_source');
+					self.checkFeedbacks(l + '_selected_destination');
+					debug('action: route_' + level[1] + ': ' + cmd);
+				}		
+				break;
+			}
+		}
 
 	if (cmd !== "") {
 		self.socket.send(cmd + "\n\n");
+		debug('send: ' + cmd + "\n\n");
+	}
+
+
+};
+
+instance.prototype.init_presets = function () {
+	var self = this;
+	var presets = [];
+
+	debug('init preset');
+
+	var inlist = [];
+	var outlist = [];
+
+	for (var l in self.data.l) {
+			
+		for (var s in self.data.in[l]) {
+			var dat = self.data.in[l][s];
+			var num = parseInt(s) + 1;
+			inlist[s] = { id: s, label: num + ': ' + dat.name }
+		}
+
+		for (var s in self.data.out[l]) {
+			var dat = self.data.out[l][s];
+			var num = parseInt(s) + 1;
+			outlist[s] = { id: s, label: num + ': ' + dat.name }
+		}
+
+		presets.push({
+			category: l + ' Actions\n(XY only)',
+			label: l + ' Take',
+			bank: {
+				style: 'text',
+				text: l + ' Take',
+				size: '18',
+				color: self.rgb(255,255,255),
+				bgcolor: self.rgb(0,0,0)
+			},
+			feedbacks: [
+				{
+					type: l + '_take',
+					options: {
+						bg: self.rgb(255,0,0),
+						fg: self.rgb(255,255,255)
+					}
+				}
+			],
+			actions: [
+				{
+					action: 'take_' + l
+				}
+			]
+		});
+
+		presets.push({
+			category: l + ' Actions\n(XY only)',
+			label: l + ' Clear',
+			bank: {
+				style: 'text',
+				text: l + ' Clear',
+				size: '18',
+				color: self.rgb(128,128,128),
+				bgcolor: self.rgb(0,0,0)
+			},
+			feedbacks: [
+				{
+					type: l + '_take',
+					options: {
+						bg: self.rgb(0,0,0),
+						fg: self.rgb(255,255,255)
+					}
+				}
+			],
+			actions: [
+				{
+					action: 'clear_' + l
+				}
+			]
+		});
+
+		for (var i in outlist) {
+			presets.push({
+				category: l + ' Select Destination (X)',
+				label: l + ' Selection destination button for ' + outlist[i].label,
+				bank: {
+					style: 'text',
+					text: '$(nevion:' + l + '_output_' + i + ')',
+					size: '18',
+					color: self.rgb(255,255,255),
+					bgcolor: self.rgb(0,0,0)
+				},
+				feedbacks: [
+					{
+						type: l + '_selected_destination',
+						options: {
+							bg: self.rgb(255,255,0),
+							fg: self.rgb(0,0,0),
+							output: i
+						}
+					},
+					{
+						type: l + '_take_tally_dest',
+						options: {
+							bg: self.rgb(255,0,0),
+							fg: self.rgb(255,255,255),
+							output: i
+						}
+					}
+				],
+				actions: [
+					{
+						action: 'select_destination_' + l,
+						options: {
+							destination: i
+						}
+					}
+				]
+			});
+		}
+
+		for (var i in inlist) {
+
+			presets.push({
+				category: l + ' Route Source (Y)',
+				label: l + ' Route ' + inlist[i].label + ' to selected destination',
+				bank: {
+					style: 'text',
+					text: '$(nevion:' + l + '_input_' + i + ')',
+					size: '18',
+					color: self.rgb(255,255,255),
+					bgcolor: self.rgb(0,0,0)
+				},
+				feedbacks: [
+					{
+						type: l + '_selected_source',
+						options: {
+							bg: self.rgb(255,255,255),
+							fg: self.rgb(0,0,0),
+							input: i
+						}
+					},
+					{
+						type: l + '_take_tally_source',
+						options: {
+							bg: self.rgb(255,0,0),
+							fg: self.rgb(255,255,255),
+							input: i
+						}
+					}
+				],
+				actions: [
+					{
+						action: 'route_source_' + l,
+						options: {
+							source: i
+						}
+					}
+				]
+			});
+		}
+
+		for (var o in outlist) {
+			for (var i in inlist) {
+				presets.push({
+					category: l + ' Output ' + outlist[o].label,
+					label: l + ' Output ' + outlist[o].label + ' button for ' + inlist[i].label,
+					bank: {
+						style: 'text',
+						text: '$(videohub:' + l + '_input_' + i + ')',
+						size: '18',
+						color: this.rgb(255,255,255),
+						bgcolor: this.rgb(0,0,0)
+					},
+					feedbacks: [
+						{
+							type: l + '_input_bg',
+							options: {
+								bg: this.rgb(255,255,0),
+								fg: this.rgb(0,0,0),
+								input: i,
+								output: o
+							}
+						}
+					],
+					actions: [
+						{
+							action: 'route_' + l,
+							options: {
+								source: i,
+								destination: o
+							}
+						}
+					]
+				});
+			}
+		}
+	}
+
+	self.setPresetDefinitions(presets);
+};
+
+instance.prototype.update_variables = function (system) {
+	var self = this;
+
+	debug('init varibels');
+
+	var variables = [];
+
+	var inlist = [];
+	var outlist = [];
+
+	for (var l in self.data.l) {
+			
+		for (var s in self.data.in[l]) {
+			var dat = self.data.in[l][s];
+			var num = parseInt(s) + 1;
+			inlist[s] = { id: s, label: dat.name }
+		}
+
+		for (var s in self.data.out[l]) {
+			var dat = self.data.out[l][s];
+			var num = parseInt(s) + 1;
+			outlist[s] = { id: s, label: dat.name }
+		}
+
+		for (var i in inlist) {
+				variables.push({
+					label: 'Label of input ' + i,
+					name: l + '_input_' + i
+				});
+
+				self.setVariable(l + '_input_' + i, inlist[i].label);
+		}
+
+		for (var i in outlist) {
+			variables.push({
+				label: 'Label of output ' + i,
+				name: l + '_output_' + i
+			});
+
+			self.setVariable(l + '_output_' + i, outlist[i].label);
+		}
+
+		variables.push({
+			label: 'Label of selected destination',
+			name: l + '_selected_destination'
+		});
+
+		variables.push({
+			label: 'Label of input routed to selection',
+			name: l + '_selected_source'
+		});
+
+		self.setVariable(l + '_selected_destination', outlist[0].label);
+		self.setVariable(l + '_selected_source', inlist[0].label);
+
+		self.setVariableDefinitions(variables);
+	}
+}
+
+// Setup Feedbacks:
+instance.prototype.init_feedback = function (system) {
+	var self = this;
+
+	debug('init feedback');
+
+	var feedbacks = {};
+
+	var inlist = [];
+	var outlist = [];
+
+	for (var l in self.data.l) {
+			
+		for (var s in self.data.in[l]) {
+			var dat = self.data.in[l][s];
+			var num = parseInt(s) + 1;
+			inlist[s] = { id: s, label: num + ': ' + dat.name }
+		}
+
+		for (var s in self.data.out[l]) {
+			var dat = self.data.out[l][s];
+			var num = parseInt(s) + 1;
+			outlist[s] = { id: s, label: num + ': ' + dat.name }
+		}
+	
+		feedbacks[l + '_input_bg'] = {
+			label: l + ' Change background color by destination',
+			description: 'If the input specified is in use by the output specified, change background color of the bank',
+			options: [
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: self.rgb(0,0,0)
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: self.rgb(255,255,0)
+				},
+				{
+					type: 'dropdown',
+					label: 'Input',
+					id: 'input',
+					default: '0',
+					choices: inlist
+				},
+				{
+					type: 'dropdown',
+					label: 'Output',
+					id: 'output',
+					default: '0',
+					choices: outlist
+				}
+			],
+		};
+
+		feedbacks[ l + '_selected_destination'] = {
+			label: l + ' Change background color by selected destination',
+			description: 'If the output specified is selected, change background color of the bank',
+			options: [
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: self.rgb(0,0,0)
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: self.rgb(255,255,0)
+				},
+				{
+					type: 'dropdown',
+					label: 'Output',
+					id: 'output',
+					default: '0',
+					choices: inlist
+				}
+			]
+		};
+
+		feedbacks[ l + '_selected_source'] = {
+			label: l + ' Change background color by route to selected destination',
+			description: 'If the input specified is in use by the selected output, change background color of the bank',
+			options: [
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: self.rgb(0,0,0)
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: self.rgb(255,255,255)
+				},
+				{
+					type: 'dropdown',
+					label: 'Input',
+					id: 'input',
+					default: '0',
+					choices: inlist
+				}
+			]
+		};
+
+		feedbacks[ l + '_take'] = {
+			label: l + ' Change background color if take has a route queued',
+			description: 'If a route is queued for take, change background color of the bank',
+			options: [
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: self.rgb(255,255,255)
+
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: self.rgb(255,0,0)
+				}
+			]
+		};
+
+		feedbacks[ l + '_take_tally_source'] = {
+			label: l + ' Change background color if the selected source is queued in take',
+			description: 'If the selected source is queued for take, change background color of the bank',
+			options: [
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: self.rgb(255,255,255)
+
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: self.rgb(255,0,0)
+				},
+				{
+					type: 'dropdown',
+					label: 'Input',
+					id: 'input',
+					default: '0',
+					choices: inlist
+				}
+			]
+		};
+
+		feedbacks[ l + '_take_tally_dest'] = {
+			label: l + ' Change background color if the selected destination is queued in take',
+			description: 'If the selected destination is queued for take, change background color of the bank',
+			options: [
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: self.rgb(255,255,255)
+
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: self.rgb(255,0,0)
+				},
+				{
+					type: 'dropdown',
+					label: 'Output',
+					id: 'output',
+					default: '0',
+					choices: outlist
+				}
+			]
+		};
+	}
+
+	self.setFeedbackDefinitions(feedbacks);
+}
+
+instance.prototype.feedback = function(feedback, bank) {
+	var self = this;
+
+	debug('update feedback');
+
+	for (var l in self.data.l) {
+
+		if (feedback.type == l + '_input_bg') {
+			if (self.data.x[l][feedback.options.output] == parseInt(feedback.options.input)) {
+				return {
+					color: feedback.options.fg,
+					bgcolor: feedback.options.bg
+				};
+			}
+		}
+
+		if (feedback.type == l + '_selected_destination') {
+			if (parseInt(feedback.options.output) == self.selected) {
+				return {
+					color: feedback.options.fg,
+					bgcolor: feedback.options.bg
+				};
+			}
+		}
+
+		else if (feedback.type == l + '_selected_source') {
+			debug('FB_data.x: ' + self.data.x[l][self.selected]);
+			debug('FB_input: ' + parseInt(feedback.options.input));
+			if (self.data.x[l][self.selected] == parseInt(feedback.options.input)) {
+				return {
+					color: feedback.options.fg,
+					bgcolor: feedback.options.bg
+				};
+			}
+		}
+
+		else if (feedback.type == l + '_take') {
+			if (self.queue != '') {
+				return {
+					color: feedback.options.fg,
+					bgcolor: feedback.options.bg
+				};
+			}
+		}
+
+		else if (feedback.type == l + '_take_tally_source') {
+			if (parseInt(feedback.options.input) == self.queuedSource && self.selected == self.queuedDest) {
+				return {
+					color: feedback.options.fg,
+					bgcolor: feedback.options.bg
+				};
+			}
+		}
+
+		else if (feedback.type == l + '_take_tally_dest') {
+			if (parseInt(feedback.options.output) == self.queuedDest) {
+				return {
+					color: feedback.options.fg,
+					bgcolor: feedback.options.bg
+				};
+			}
+		}
 	}
 };
 
