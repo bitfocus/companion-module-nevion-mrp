@@ -54,11 +54,7 @@ instance.prototype.init = function() {
 
 	self.status(1,'Connecting'); // status ok!
 	self.init_tcp();
-//	self.update_variables(); 	// Export Variables
-//	self.init_feedback();			// Export Feedbacks
-//	self.checkFeedbacks();		// Export Feedbacks
 	self.actions_delayed(); 	// Export Actions
-//	self.init_presets();			// Export Presets
 };
 
 instance.prototype.init_tcp = function() {
@@ -353,24 +349,40 @@ instance.prototype.nevion_read_s = function(msg) {
 
 // XPT
 instance.prototype.nevion_read_x = function(msg) {
-
 	var self = this;
 	var arr = msg.split(/ /);
+	var match;
+
+	console.log('data.x Level: %s Out: %s In: %s', arr[1], arr[3], arr[2]);
+//	console.log('data.x_out: ' + arr[3]);
+//	console.log('data.x_in: ' + arr[2]);
 
 	// Video level
 	if (self.data.x[arr[1]] === undefined) {
 		self.data.x[arr[1]] = {};
 	}
 
+	// For the Video router:
 	// { l1: {  '20':   '56' } }
 	//   ^level ^output ^input
 
-	self.data.x[arr[1]][arr[3]] = arr[2];
-	debug('data.x: ' + self.data.x[arr[1]][arr[3]]);
-	self.checkFeedbacks();
-	self.checkFeedbacks(arr[1] + '_selected_source');
-	self.checkFeedbacks(arr[1] + '_input_bg');
+	// For button panels / Virtual interface:
+	// { vtl1: {  '20':   '56' } }
+	//   ^level    ^output ^input
 
+	// Check if it's data for the router, not to fx a button interface (vtl XX)
+	if (match = arr[1].match(/^l([0-9]+)/)) {
+		self.data.x[arr[1]][arr[3]] = arr[2];
+
+		// For the Video router:
+		// { l1: {  '20':   '56' } }
+		//   ^level ^output ^input
+
+		self.setVariable(arr[1] + '_output_' + arr[3] + '_input', self.data.in[arr[1]][arr[2]].label);
+		self.checkFeedbacks();
+		self.checkFeedbacks(arr[1] + '_selected_source');
+		self.checkFeedbacks(arr[1] + '_input_bg');
+	}
 }
 
 // Messages from the router is dynamically assigned to functions above.
@@ -480,12 +492,41 @@ instance.prototype.config_fields = function () {
 			regex: self.REGEX_PORT
 		},
 		{
+			type: 'text',
+			id: 'info',
+			width: 12,
+			label: 'Information',
+			value: 'Options For configuring the funtionality of the module. This only affects (XY) mode.'
+		},
+		{
 			type: 'checkbox',
 			id: 'take',
-			label: 'Enable Take? (XY only)',
-			width: 4,
+			label: 'Enable Take?',
+			width: 2,
 			default: false,
 		},
+		{
+			type: 'checkbox',
+			id: 'show_input',
+			label: 'Show Input on Destination?',
+			width: 3,
+			default: false,
+		},
+		// Not a thing you can add sadly, for providing the option for the user to define the BG color on all presets
+	/*	{
+			type: 'colorpicker',
+			label: 'Destination Default BG color',
+			id: 'dest_bg',
+			width: 3,
+			default: self.rgb(255,0,0) // Red
+		},
+		{
+			type: 'colorpicker',
+			label: 'Source Default BG color',
+			id: 'source_bg',
+			width: 3,
+			default: self.rgb(0,204,0) // Green
+		},*/
 		{
 			type: 'text',
 			id: 'info',
@@ -532,13 +573,13 @@ instance.prototype.actions = function(system) {
 			
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
-			var num = parseInt(s) + 1;
+			var num = parseInt(s);
 			inlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
 
 		for (var s in self.data.out[l]) {
 			var dat = self.data.out[l][s];
-			var num = parseInt(s) + 1;
+			var num = parseInt(s);
 			outlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
 
@@ -613,7 +654,6 @@ instance.prototype.actions = function(system) {
 	self.system.emit('instance_actions', self.id, actionlist);
 };
 
-
 instance.prototype.action = function(action) {
 	var self = this;
 	var opt = action.options;
@@ -627,13 +667,13 @@ instance.prototype.action = function(action) {
 
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
-			var num = parseInt(s) + 1;
+			var num = parseInt(s);
 			inlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
 
 		for (var s in self.data.out[l]) {
 			var dat = self.data.out[l][s];
-			var num = parseInt(s) + 1;
+			var num = parseInt(s);
 			outlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
 	
@@ -734,13 +774,13 @@ instance.prototype.init_presets = function () {
 			
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
-			var num = parseInt(s) + 1;
+			var num = parseInt(s);
 			inlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
 
 		for (var s in self.data.out[l]) {
 			var dat = self.data.out[l][s];
-			var num = parseInt(s) + 1;
+			var num = parseInt(s);
 			outlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
 
@@ -758,7 +798,7 @@ instance.prototype.init_presets = function () {
 				{
 					type: l + '_take',
 					options: {
-						bg: self.rgb(255,0,0),
+						bg: self.rgb(0,51,204),
 						fg: self.rgb(255,255,255)
 					}
 				}
@@ -797,47 +837,89 @@ instance.prototype.init_presets = function () {
 		});
 
 		for (var i in outlist) {
-			presets.push({
-				category: l + ' Select Destination (X)',
-				label: l + ' Selection destination button for ' + outlist[i].label,
-				bank: {
-					style: 'text',
-					text: '$(nevion:' + l + '_output_' + i + ')',
-					size: '18',
-					color: self.rgb(255,255,255),
-					bgcolor: self.rgb(0,0,0)
-				},
-				feedbacks: [
-					{
-						type: l + '_selected_destination',
-						options: {
-							bg: self.rgb(255,255,0),
-							fg: self.rgb(0,0,0),
-							output: i
-						}
+			if (self.config.show_input === true) {
+				presets.push({
+					category: l + ' Select Destination (X)',
+					label: l + ' Selection destination button for ' + outlist[i].label,
+					bank: {
+						style: 'text',
+						text: '$(nevion:' + l + '_output_' + i + ') ' + '$(nevion:' + l + '_output_' + i + '_input)',
+						size: '14',
+						color: self.rgb(255,255,255),
+						bgcolor: self.rgb(255,0,0)
+//						bgcolor: self.config.dest_bg
 					},
-					{
-						type: l + '_take_tally_dest',
-						options: {
-							bg: self.rgb(255,0,0),
-							fg: self.rgb(255,255,255),
-							output: i
+					feedbacks: [
+						{
+							type: l + '_selected_destination',
+							options: {
+								bg: self.rgb(255,255,0),
+								fg: self.rgb(0,0,0),
+								output: i
+							}
+						},
+						{
+							type: l + '_take_tally_dest',
+							options: {
+								bg: self.rgb(0,51,204),
+								fg: self.rgb(255,255,255),
+								output: i
+							}
 						}
-					}
-				],
-				actions: [
-					{
-						action: 'select_destination_' + l,
-						options: {
-							destination: i
+					],
+					actions: [
+						{
+							action: 'select_destination_' + l,
+							options: {
+								destination: i
+							}
 						}
-					}
-				]
-			});
+					]
+				});
+			}
+			else {
+				presets.push({
+					category: l + ' Select Destination (X)',
+					label: l + ' Selection destination button for ' + outlist[i].label,
+					bank: {
+						style: 'text',
+						text: '$(nevion:' + l + '_output_' + i + ')',
+						size: '18',
+						color: self.rgb(255,255,255),
+						bgcolor: self.rgb(255,0,0)
+//							bgcolor: self.config.dest_bg
+					},
+					feedbacks: [
+						{
+							type: l + '_selected_destination',
+							options: {
+								bg: self.rgb(255,255,0),
+								fg: self.rgb(0,0,0),
+								output: i
+							}
+						},
+						{
+							type: l + '_take_tally_dest',
+							options: {
+								bg: self.rgb(0,51,204),
+								fg: self.rgb(255,255,255),
+								output: i
+							}
+						}
+					],
+					actions: [
+						{
+							action: 'select_destination_' + l,
+							options: {
+								destination: i
+							}
+						}
+					]
+				});
+			}
 		}
 
 		for (var i in inlist) {
-
 			presets.push({
 				category: l + ' Route Source (Y)',
 				label: l + ' Route ' + inlist[i].label + ' to selected destination',
@@ -846,7 +928,8 @@ instance.prototype.init_presets = function () {
 					text: '$(nevion:' + l + '_input_' + i + ')',
 					size: '18',
 					color: self.rgb(255,255,255),
-					bgcolor: self.rgb(0,0,0)
+					bgcolor: self.rgb(0,204,0)
+//					bgcolor: self.config.source_bg
 				},
 				feedbacks: [
 					{
@@ -860,7 +943,7 @@ instance.prototype.init_presets = function () {
 					{
 						type: l + '_take_tally_source',
 						options: {
-							bg: self.rgb(255,0,0),
+							bg: self.rgb(0,51,204),
 							fg: self.rgb(255,255,255),
 							input: i
 						}
@@ -886,15 +969,15 @@ instance.prototype.init_presets = function () {
 						style: 'text',
 						text: '$(videohub:' + l + '_input_' + i + ')',
 						size: '18',
-						color: this.rgb(255,255,255),
-						bgcolor: this.rgb(0,0,0)
+						color: self.rgb(255,255,255),
+						bgcolor: self.rgb(0,0,0)
 					},
 					feedbacks: [
 						{
 							type: l + '_input_bg',
 							options: {
-								bg: this.rgb(255,255,0),
-								fg: this.rgb(0,0,0),
+								bg: self.rgb(255,255,0),
+								fg: self.rgb(0,0,0),
 								input: i,
 								output: o
 							}
@@ -917,6 +1000,7 @@ instance.prototype.init_presets = function () {
 	self.setPresetDefinitions(presets);
 };
 
+// Setup Varibles
 instance.prototype.update_variables = function (system) {
 	var self = this;
 
@@ -931,13 +1015,13 @@ instance.prototype.update_variables = function (system) {
 			
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
-			var num = parseInt(s) + 1;
+			var num = parseInt(s);
 			inlist[s] = { id: s, label: dat.name }
 		}
 
 		for (var s in self.data.out[l]) {
 			var dat = self.data.out[l][s];
-			var num = parseInt(s) + 1;
+			var num = parseInt(s);
 			outlist[s] = { id: s, label: dat.name }
 		}
 
@@ -957,6 +1041,13 @@ instance.prototype.update_variables = function (system) {
 			});
 
 			self.setVariable(l + '_output_' + i, outlist[i].label);
+
+			variables.push({
+				label: 'Label of input routed to output ' + i,
+				name: l + '_output_' + i + '_input'
+			});
+
+			self.setVariable(l + '_output_' + i + '_input', inlist[self.data.x[l][i]].label);
 		}
 
 		variables.push({
@@ -991,13 +1082,13 @@ instance.prototype.init_feedback = function (system) {
 			
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
-			var num = parseInt(s) + 1;
+			var num = parseInt(s);
 			inlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
 
 		for (var s in self.data.out[l]) {
 			var dat = self.data.out[l][s];
-			var num = parseInt(s) + 1;
+			var num = parseInt(s);
 			outlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
 	
@@ -1101,7 +1192,7 @@ instance.prototype.init_feedback = function (system) {
 					type: 'colorpicker',
 					label: 'Background color',
 					id: 'bg',
-					default: self.rgb(255,0,0)
+					default: self.rgb(0,51,204)
 				}
 			]
 		};
@@ -1121,7 +1212,7 @@ instance.prototype.init_feedback = function (system) {
 					type: 'colorpicker',
 					label: 'Background color',
 					id: 'bg',
-					default: self.rgb(255,0,0)
+					default: self.rgb(0,51,204)
 				},
 				{
 					type: 'dropdown',
@@ -1148,7 +1239,7 @@ instance.prototype.init_feedback = function (system) {
 					type: 'colorpicker',
 					label: 'Background color',
 					id: 'bg',
-					default: self.rgb(255,0,0)
+					default: self.rgb(0,51,204)
 				},
 				{
 					type: 'dropdown',
@@ -1164,6 +1255,7 @@ instance.prototype.init_feedback = function (system) {
 	self.setFeedbackDefinitions(feedbacks);
 }
 
+// Setup Feedback Logic
 instance.prototype.feedback = function(feedback, bank) {
 	var self = this;
 
