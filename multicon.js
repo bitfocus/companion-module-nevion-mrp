@@ -14,12 +14,6 @@ function instance(system, id, config) {
 	self.defineConst('STATE_RECEIVING', 2);
 	self.defineConst('STATE_WAITING', 3);
 
-//	self.update_variables(); 	// Export Variables
-//	self.init_feedback();			// Export Feedbacks
-//	self.checkFeedbacks();		// Export Feedbacks
-// self.actions_delayed(); 	// Export Actions
-//	self.init_presets();			// Export Presets
-
 	return self;
 }
 
@@ -39,7 +33,6 @@ instance.prototype.updateConfig = function(config) {
 instance.prototype.init = function() {
 	var self = this;
 	debug = self.debug;
-	//debug = console.log; // Spam console with debug
 	log = self.log;
 
 	self.message_command = [];
@@ -69,7 +62,7 @@ instance.prototype.init_tcp = function() {
 	if (self.socket !== undefined) {
 		self.socket.destroy();
 		delete self.socket;
-	}
+	};
 
 	self.state = self.STATE_IDLE;
 
@@ -201,11 +194,6 @@ instance.prototype.nevion_read_llist = function(msg) {
 		self.socket.send("outlist " + level + "\n\n" );
 		self.socket.send("s " + level + "\n\n" );
 
-		//console.log('data.l: ' +	l);
-		//console.log('data.l[level]: ' +	level);
-		//console.log('data.l.size: ' +	self.data.l[level].size);
-		//console.log('data.l.type: ' +	self.data.l[level].type);
-		//console.log('data.l.desc: ' +	self.data.l[level].desc);
 }
 
 	// Update actionlist with new info
@@ -232,15 +220,10 @@ instance.prototype.nevion_read_out = function(msg) {
 			unknown: arr[6]
 		};
 
-		//console.log('data.out.name: ' +	self.data.out[arr[1]][arr[2]].name);
-		//console.log('data.out.long_name: ' +	self.data.out[arr[1]][arr[2]].long_name);
-		//console.log('data.out.desc: ' +	self.data.out[arr[1]][arr[2]].desc);
-		//console.log('data.out.unknown: ' +	self.data.out[arr[1]][arr[2]].unknown);
-
 	}
 
 	else {
-		//console.log("out message not matchoutg '" + msg + "'");
+		debog("out message not matchoutg '" + msg + "'");
 	}
 
 	// Update actionlist with new info
@@ -266,15 +249,10 @@ instance.prototype.nevion_read_in = function(msg) {
 			unknown: arr[6]
 		};
 
-		//console.log('data.in.name: ' +	self.data.in[arr[1]][arr[2]].name);
-		//console.log('data.in.long_name: ' +	self.data.in[arr[1]][arr[2]].long_name);
-		//console.log('data.in.desc: ' +	self.data.in[arr[1]][arr[2]].desc);
-		//console.log('data.in.unknown: ' +	self.data.in[arr[1]][arr[2]].unknown);
-
 	}
 
 	else {
-		//console.log("in message not matching '" + msg + "'");
+		debug("in message not matching '" + msg + "'");
 	}
 
 	// Update actionlist with new info
@@ -297,13 +275,7 @@ instance.prototype.nevion_read_sspi = function(msg) {
 	//   ^level ^input  ^presence
 
 	self.data.sspi[arr[1]][arr[2]] = arr[3];
-
-	//console.log('sspi: ' + arr[0]);
-	//console.log('sspi: ' + arr[1]);
-	//console.log('sspi: ' + arr[3]);
-	//console.log('sspi: ' + arr[2]);
-	//console.log('sspi: ' + 	self.data.sspi[arr[1]][arr[2]]);
-
+	
 }
 
 // Login
@@ -331,7 +303,7 @@ instance.prototype.nevion_read_login = function(msg) {
 	}
 
 	else {
-		//console.log("unknown login message", msg);
+		debug("unknown login message", msg);
 	}
 
 }
@@ -357,9 +329,7 @@ instance.prototype.nevion_read_x = function(msg) {
 	var arr = msg.split(/ /);
 	var match;
 
-	//console.log('data.x Level: %s Out: %s In: %s', arr[1], arr[3], arr[2]);
-//	console.log('data.x_out: ' + arr[3]);
-//	console.log('data.x_in: ' + arr[2]);
+	debug('data.x Level: %s Out: %s In: %s', arr[1], arr[3], arr[2]);
 
 	// Video level
 	if (self.data.x[arr[1]] === undefined) {
@@ -386,7 +356,6 @@ instance.prototype.nevion_read_x = function(msg) {
 		self.checkFeedbacks();
 		self.checkFeedbacks(arr[1] + '_selected_source');
 		self.checkFeedbacks(arr[1] + '_input_bg');
-//		self.update_variables(); 	// Export Variables
 	}
 }
 
@@ -406,7 +375,6 @@ instance.prototype.process_nevion_message = function() {
 				self['nevion_read_' + match[1]](cmd);
 			}
 			else {
-//				console.log("nevion missing function:",match[1]);
 			}
 		}
 	}
@@ -417,7 +385,6 @@ instance.prototype.process_nevion_message = function() {
 				self['nevion_read_' + match[1]](cmd);
 			}
 			else {
-//				console.log("nevion missing function:",match[1]);
 			}
 		}
 	}
@@ -464,7 +431,7 @@ instance.prototype.process_message_queue = function() {
 						self.message_command = line + "\n";
 					}
 					else {
-						//console.log("unknown",'"'+line+'"');
+						debug("unknown",'"'+line+'"');
 					}
 				}
 
@@ -562,7 +529,7 @@ instance.prototype.destroy = function() {
 		self.socket.destroy();
 	}
 
-	debug("destroy", self.id);
+	debug("destroy", self.id);;
 };
 
 // Setup Actions
@@ -576,7 +543,7 @@ instance.prototype.actions = function(system) {
 	var outlist = [];
 
 	for (var l in self.data.l) {
-
+			
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
@@ -589,16 +556,6 @@ instance.prototype.actions = function(system) {
 			outlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
 
-/*
-		console.log('Debug Input/Output Data:')
-
-		for (var i in inlist) {
-			console.log('Input nr ' + i + ': id: %s, label: %s', inlist[i].id, inlist[i].label);
-		}
-		for (var i in outlist) {
-			console.log('Output nr ' + i + ': id: %s, label: %s', outlist[i].id, outlist[i].label);
-		}
-*/
 		actionlist['route_' + l] = {
 			label: 'Route ' + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc,
 			options: [
@@ -645,18 +602,15 @@ instance.prototype.actions = function(system) {
 			]
 		};
 
-		actionlist['take_' + l]  = {
-			label: 'Take '  + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc
+		actionlist['take_' + l]  = { 
+			label: 'Take '  + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc 
 		};
 
-		actionlist['clear_' + l] = {
-			label: 'Clear '  + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc
+		actionlist['clear_' + l] = { 
+			label: 'Clear '  + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc 
 		};
 	}
 
-//	self.update_variables(); 	// Export Variables
-//	self.checkFeedbacks();		// Export Feedbacks
-//	self.init_presets();			// Export Presets
 	self.system.emit('instance_actions', self.id, actionlist);
 };
 
@@ -683,7 +637,7 @@ instance.prototype.action = function(action) {
 			var num = parseInt(s);
 			outlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
-
+	
 		switch (action.action) {
 			case 'select_destination_'+l:
 				self.selected = opt.destination;
@@ -691,7 +645,6 @@ instance.prototype.action = function(action) {
 				self.checkFeedbacks(l + '_selected_destination');
 				self.checkFeedbacks(l + '_take_tally_source');
 				self.checkFeedbacks(l + '_selected_source');
-//				self.update_variables(); 	// Export Variables
 				debug('action: select_destination_'+l);
 				debug('selected: ' + self.selected);
 				break;
@@ -708,18 +661,16 @@ instance.prototype.action = function(action) {
 					self.checkFeedbacks(l + '_input_bg');
 					self.setVariable(l + '_selected_destination', outlist[self.queuedDest].label);
 					self.setVariable(l + '_selected_source', inlist[self.queuedSource].label);
-//					self.update_variables(); 	// Export Variables
 				}
 				else {
 					cmd = "x " + l + " " + opt.source + " " + self.selected;
-//					self.update_variables(); 	// Export Variables
 				}
 				debug(l + '_action: route_source_'+l);
 				debug(l + '_selected: ' + self.selected);
 				debug(l + '_que dest: ' + self.queuedDest);
 				debug(l + '_que source: ' + self.queuedSource);
 				break;
-
+		
 
 			case 'take_'+l:
 				cmd = self.queue;
@@ -731,10 +682,9 @@ instance.prototype.action = function(action) {
 				self.checkFeedbacks(l + '_take_tally_dest');
 				self.checkFeedbacks(l + '_take_tally_route');
 				self.checkFeedbacks(l + '_input_bg');
-//				self.update_variables(); 	// Export Variables
 				debug('action: take_'+l);
 				break;
-
+			
 			case 'clear_'+l:
 				self.queue = '';
 				self.queuedDest = -1;
@@ -744,7 +694,6 @@ instance.prototype.action = function(action) {
 				self.checkFeedbacks(l + '_take_tally_dest');
 				self.checkFeedbacks(l + '_take_tally_route');
 				self.checkFeedbacks(l + '_input_bg');
-//				self.update_variables(); 	// Export Variables
 				debug('action: clear_'+l);
 				break;
 
@@ -759,9 +708,8 @@ instance.prototype.action = function(action) {
 					self.checkFeedbacks(l + '_input_bg');
 					self.checkFeedbacks(l + '_selected_source');
 					self.checkFeedbacks(l + '_selected_destination');
-//					self.update_variables(); 	// Export Variables
 					debug('action: route_' + level[1] + ': ' + cmd);
-				}
+				}		
 				break;
 			}
 		}
@@ -785,7 +733,7 @@ instance.prototype.init_presets = function () {
 	var outlist = [];
 
 	for (var l in self.data.l) {
-
+			
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
@@ -861,14 +809,14 @@ instance.prototype.init_presets = function () {
 						size: '14',
 						color: self.rgb(255,255,255),
 						bgcolor: self.rgb(255,0,0)
-//						bgcolor: self.config.dest_bg
+//						bgcolor: self.config.dest_bg // Should be swaped with above line if color select becomes avalible in config settings
 					},
 					feedbacks: [
 						{
 							type: l + '_selected_destination',
 							options: {
 								bg: self.rgb(255,255,0),
-								fg: self.rgb(0,0,0),
+								fg: self.rgb(0,0,0), 
 								output: i
 							}
 						},
@@ -901,7 +849,7 @@ instance.prototype.init_presets = function () {
 						size: '18',
 						color: self.rgb(255,255,255),
 						bgcolor: self.rgb(255,0,0)
-//							bgcolor: self.config.dest_bg
+//							bgcolor: self.config.dest_bg // Should be swaped with above line if color select becomes avalible in config settings
 					},
 					feedbacks: [
 						{
@@ -943,7 +891,7 @@ instance.prototype.init_presets = function () {
 					size: '18',
 					color: self.rgb(255,255,255),
 					bgcolor: self.rgb(0,204,0)
-//					bgcolor: self.config.source_bg
+//					bgcolor: self.config.source_bg // Should be swaped with above line if color select becomes avalible in config settings
 				},
 				feedbacks: [
 					{
@@ -1026,7 +974,7 @@ instance.prototype.update_variables = function (system) {
 	var outlist = [];
 
 	for (var l in self.data.l) {
-
+			
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
@@ -1093,7 +1041,7 @@ instance.prototype.init_feedback = function (system) {
 	var outlist = [];
 
 	for (var l in self.data.l) {
-
+			
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
@@ -1105,7 +1053,7 @@ instance.prototype.init_feedback = function (system) {
 			var num = parseInt(s);
 			outlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
-
+	
 		feedbacks[l + '_input_bg'] = {
 			label: l + ' Change background color by destination',
 			description: 'If the input specified is in use by the output specified, change background color of the bank',
