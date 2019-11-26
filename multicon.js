@@ -843,7 +843,7 @@ instance.prototype.init_presets = function () {
 					label: l + ' Selection destination button for ' + outlist[i].label,
 					bank: {
 						style: 'text',
-						text: '$(nevion:' + l + '_output_' + i + ') ' + '$(nevion:' + l + '_output_' + i + '_input)',
+						text: '$(nevion:' + l + '_output_' + i + ')\n' + '$(nevion:' + l + '_output_' + i + '_input)',
 						size: '14',
 						color: self.rgb(255,255,255),
 						bgcolor: self.rgb(255,0,0)
@@ -967,7 +967,7 @@ instance.prototype.init_presets = function () {
 					label: l + ' Output ' + outlist[o].label + ' button for ' + inlist[i].label,
 					bank: {
 						style: 'text',
-						text: '$(videohub:' + l + '_input_' + i + ')',
+						text: '$(nevion:' + l + '_input_' + i + ')',
 						size: '18',
 						color: self.rgb(255,255,255),
 						bgcolor: self.rgb(0,0,0)
