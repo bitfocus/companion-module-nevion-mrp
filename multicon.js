@@ -69,7 +69,7 @@ instance.prototype.init_tcp = function() {
 	if (self.socket !== undefined) {
 		self.socket.destroy();
 		delete self.socket;
-	};
+	}
 
 	self.state = self.STATE_IDLE;
 
@@ -240,7 +240,7 @@ instance.prototype.nevion_read_out = function(msg) {
 	}
 
 	else {
-		console.log("out message not matchoutg '" + msg + "'");
+		//console.log("out message not matchoutg '" + msg + "'");
 	}
 
 	// Update actionlist with new info
@@ -274,7 +274,7 @@ instance.prototype.nevion_read_in = function(msg) {
 	}
 
 	else {
-		console.log("in message not matching '" + msg + "'");
+		//console.log("in message not matching '" + msg + "'");
 	}
 
 	// Update actionlist with new info
@@ -303,7 +303,7 @@ instance.prototype.nevion_read_sspi = function(msg) {
 	//console.log('sspi: ' + arr[3]);
 	//console.log('sspi: ' + arr[2]);
 	//console.log('sspi: ' + 	self.data.sspi[arr[1]][arr[2]]);
-	
+
 }
 
 // Login
@@ -331,7 +331,7 @@ instance.prototype.nevion_read_login = function(msg) {
 	}
 
 	else {
-		console.log("unknown login message", msg);
+		//console.log("unknown login message", msg);
 	}
 
 }
@@ -357,7 +357,7 @@ instance.prototype.nevion_read_x = function(msg) {
 	var arr = msg.split(/ /);
 	var match;
 
-	console.log('data.x Level: %s Out: %s In: %s', arr[1], arr[3], arr[2]);
+	//console.log('data.x Level: %s Out: %s In: %s', arr[1], arr[3], arr[2]);
 //	console.log('data.x_out: ' + arr[3]);
 //	console.log('data.x_in: ' + arr[2]);
 
@@ -464,7 +464,7 @@ instance.prototype.process_message_queue = function() {
 						self.message_command = line + "\n";
 					}
 					else {
-						console.log("unknown",'"'+line+'"');
+						//console.log("unknown",'"'+line+'"');
 					}
 				}
 
@@ -562,7 +562,7 @@ instance.prototype.destroy = function() {
 		self.socket.destroy();
 	}
 
-	debug("destroy", self.id);;
+	debug("destroy", self.id);
 };
 
 // Setup Actions
@@ -576,7 +576,7 @@ instance.prototype.actions = function(system) {
 	var outlist = [];
 
 	for (var l in self.data.l) {
-			
+
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
@@ -589,7 +589,7 @@ instance.prototype.actions = function(system) {
 			outlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
 
-/*		
+/*
 		console.log('Debug Input/Output Data:')
 
 		for (var i in inlist) {
@@ -645,12 +645,12 @@ instance.prototype.actions = function(system) {
 			]
 		};
 
-		actionlist['take_' + l]  = { 
-			label: 'Take '  + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc 
+		actionlist['take_' + l]  = {
+			label: 'Take '  + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc
 		};
 
-		actionlist['clear_' + l] = { 
-			label: 'Clear '  + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc 
+		actionlist['clear_' + l] = {
+			label: 'Clear '  + l + ' ' + self.data.l[l].size + ' ' + self.data.l[l].desc
 		};
 	}
 
@@ -683,7 +683,7 @@ instance.prototype.action = function(action) {
 			var num = parseInt(s);
 			outlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
-	
+
 		switch (action.action) {
 			case 'select_destination_'+l:
 				self.selected = opt.destination;
@@ -719,7 +719,7 @@ instance.prototype.action = function(action) {
 				debug(l + '_que dest: ' + self.queuedDest);
 				debug(l + '_que source: ' + self.queuedSource);
 				break;
-		
+
 
 			case 'take_'+l:
 				cmd = self.queue;
@@ -734,7 +734,7 @@ instance.prototype.action = function(action) {
 //				self.update_variables(); 	// Export Variables
 				debug('action: take_'+l);
 				break;
-			
+
 			case 'clear_'+l:
 				self.queue = '';
 				self.queuedDest = -1;
@@ -761,7 +761,7 @@ instance.prototype.action = function(action) {
 					self.checkFeedbacks(l + '_selected_destination');
 //					self.update_variables(); 	// Export Variables
 					debug('action: route_' + level[1] + ': ' + cmd);
-				}		
+				}
 				break;
 			}
 		}
@@ -785,7 +785,7 @@ instance.prototype.init_presets = function () {
 	var outlist = [];
 
 	for (var l in self.data.l) {
-			
+
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
@@ -868,7 +868,7 @@ instance.prototype.init_presets = function () {
 							type: l + '_selected_destination',
 							options: {
 								bg: self.rgb(255,255,0),
-								fg: self.rgb(0,0,0), 
+								fg: self.rgb(0,0,0),
 								output: i
 							}
 						},
@@ -1026,7 +1026,7 @@ instance.prototype.update_variables = function (system) {
 	var outlist = [];
 
 	for (var l in self.data.l) {
-			
+
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
@@ -1093,7 +1093,7 @@ instance.prototype.init_feedback = function (system) {
 	var outlist = [];
 
 	for (var l in self.data.l) {
-			
+
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
@@ -1105,7 +1105,7 @@ instance.prototype.init_feedback = function (system) {
 			var num = parseInt(s);
 			outlist[s] = { id: s, label: num + ': ' + dat.name }
 		}
-	
+
 		feedbacks[l + '_input_bg'] = {
 			label: l + ' Change background color by destination',
 			description: 'If the input specified is in use by the output specified, change background color of the bank',
