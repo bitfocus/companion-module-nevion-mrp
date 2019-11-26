@@ -3,6 +3,7 @@ var instance_skel = require('../../instance_skel');
 var debug;
 var log;
 
+// Define Instance
 function instance(system, id, config) {
 	var self = this;
 
@@ -22,6 +23,7 @@ function instance(system, id, config) {
 	return self;
 }
 
+// Update Config
 instance.prototype.updateConfig = function(config) {
 	var self = this;
 	self.config = config;
@@ -33,6 +35,7 @@ instance.prototype.updateConfig = function(config) {
 	self.init_presets();
 };
 
+// Init Instance
 instance.prototype.init = function() {
 	var self = this;
 	debug = self.debug;
@@ -57,6 +60,7 @@ instance.prototype.init = function() {
 	self.actions_delayed(); 	// Export Actions
 };
 
+// Init TCP Conection
 instance.prototype.init_tcp = function() {
 	var self = this;
 
@@ -378,10 +382,11 @@ instance.prototype.nevion_read_x = function(msg) {
 		// { l1: {  '20':   '56' } }
 		//   ^level ^output ^input
 
-		self.setVariable(arr[1] + '_output_' + arr[3] + '_input', self.data.in[arr[1]][arr[2]].label);
+		self.setVariable(arr[1] + '_output_' + arr[3] + '_input', self.data.in[arr[1]][arr[2]].name);
 		self.checkFeedbacks();
 		self.checkFeedbacks(arr[1] + '_selected_source');
 		self.checkFeedbacks(arr[1] + '_input_bg');
+//		self.update_variables(); 	// Export Variables
 	}
 }
 
@@ -560,6 +565,7 @@ instance.prototype.destroy = function() {
 	debug("destroy", self.id);;
 };
 
+// Setup Actions
 instance.prototype.actions = function(system) {
 	var self = this;
 	var actionlist = {};
@@ -654,6 +660,7 @@ instance.prototype.actions = function(system) {
 	self.system.emit('instance_actions', self.id, actionlist);
 };
 
+// Setup Action Logic
 instance.prototype.action = function(action) {
 	var self = this;
 	var opt = action.options;
@@ -684,6 +691,7 @@ instance.prototype.action = function(action) {
 				self.checkFeedbacks(l + '_selected_destination');
 				self.checkFeedbacks(l + '_take_tally_source');
 				self.checkFeedbacks(l + '_selected_source');
+//				self.update_variables(); 	// Export Variables
 				debug('action: select_destination_'+l);
 				debug('selected: ' + self.selected);
 				break;
@@ -700,9 +708,11 @@ instance.prototype.action = function(action) {
 					self.checkFeedbacks(l + '_input_bg');
 					self.setVariable(l + '_selected_destination', outlist[self.queuedDest].label);
 					self.setVariable(l + '_selected_source', inlist[self.queuedSource].label);
+//					self.update_variables(); 	// Export Variables
 				}
 				else {
 					cmd = "x " + l + " " + opt.source + " " + self.selected;
+//					self.update_variables(); 	// Export Variables
 				}
 				debug(l + '_action: route_source_'+l);
 				debug(l + '_selected: ' + self.selected);
@@ -721,6 +731,7 @@ instance.prototype.action = function(action) {
 				self.checkFeedbacks(l + '_take_tally_dest');
 				self.checkFeedbacks(l + '_take_tally_route');
 				self.checkFeedbacks(l + '_input_bg');
+//				self.update_variables(); 	// Export Variables
 				debug('action: take_'+l);
 				break;
 			
@@ -733,6 +744,7 @@ instance.prototype.action = function(action) {
 				self.checkFeedbacks(l + '_take_tally_dest');
 				self.checkFeedbacks(l + '_take_tally_route');
 				self.checkFeedbacks(l + '_input_bg');
+//				self.update_variables(); 	// Export Variables
 				debug('action: clear_'+l);
 				break;
 
@@ -747,6 +759,7 @@ instance.prototype.action = function(action) {
 					self.checkFeedbacks(l + '_input_bg');
 					self.checkFeedbacks(l + '_selected_source');
 					self.checkFeedbacks(l + '_selected_destination');
+//					self.update_variables(); 	// Export Variables
 					debug('action: route_' + level[1] + ': ' + cmd);
 				}		
 				break;
@@ -761,6 +774,7 @@ instance.prototype.action = function(action) {
 
 };
 
+// Setup Presets
 instance.prototype.init_presets = function () {
 	var self = this;
 	var presets = [];
@@ -785,7 +799,7 @@ instance.prototype.init_presets = function () {
 		}
 
 		presets.push({
-			category: l + ' Actions\n(XY only)',
+			category: l + ' Actions (XY only)',
 			label: l + ' Take',
 			bank: {
 				style: 'text',
@@ -811,7 +825,7 @@ instance.prototype.init_presets = function () {
 		});
 
 		presets.push({
-			category: l + ' Actions\n(XY only)',
+			category: l + ' Actions (XY only)',
 			label: l + ' Clear',
 			bank: {
 				style: 'text',
@@ -843,7 +857,7 @@ instance.prototype.init_presets = function () {
 					label: l + ' Selection destination button for ' + outlist[i].label,
 					bank: {
 						style: 'text',
-						text: '$(nevion:' + l + '_output_' + i + ')\n' + '$(nevion:' + l + '_output_' + i + '_input)',
+						text: '$(nevion:' + l + '_output_' + i + ')' + '\\n' + '$(nevion:' + l + '_output_' + i + '_input)',
 						size: '14',
 						color: self.rgb(255,255,255),
 						bgcolor: self.rgb(255,0,0)
@@ -854,7 +868,7 @@ instance.prototype.init_presets = function () {
 							type: l + '_selected_destination',
 							options: {
 								bg: self.rgb(255,255,0),
-								fg: self.rgb(0,0,0),
+								fg: self.rgb(0,0,0), 
 								output: i
 							}
 						},
@@ -1067,7 +1081,7 @@ instance.prototype.update_variables = function (system) {
 	}
 }
 
-// Setup Feedbacks:
+// Setup Feedbacks
 instance.prototype.init_feedback = function (system) {
 	var self = this;
 
