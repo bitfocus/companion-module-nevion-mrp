@@ -27,5 +27,5 @@ Module to control various Nevion Videohubs via the closed MRP protocol. It reads
 * Added XY, take and clear commands for better control (based of bmd videohub)
 
 **V2.0.1**
-* Fixed a bug that chrashed companion when a fysical Nevion Control panel got presed
+* Fixed a bug that chrashed companion when a physical Nevion Control panel got presed
 * Fixid a bug that preventet varibles updating to the new name after button press
