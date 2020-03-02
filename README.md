@@ -1,6 +1,5 @@
 # companion-module-nevion-mrp
-
-For more info take a look at the file: "Help.md"
+See HELP.md and LICENSE
 
 Module to control various Nevion Videohubs via the closed MRP protocol. It reads the number of inputs and outputs from the unit and is based around the functionality in the BMD Videohub module.
 
