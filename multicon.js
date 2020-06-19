@@ -41,7 +41,13 @@ instance.prototype.init = function() {
 	self.actionstimer = undefined;
 	self.login = false;
 	self.delta = "";
-	self.data = {};
+	self.data = {
+		x: {},
+		in: {},
+		out: {},
+		sspi: {},
+		l: {}
+	};
 
 	self.selected     = 0;
 	self.queue        = '';
@@ -352,7 +358,9 @@ instance.prototype.nevion_read_x = function(msg) {
 		// { l1: {  '20':   '56' } }
 		//   ^level ^output ^input
 
-		self.setVariable(arr[1] + '_output_' + arr[3] + '_input', self.data.in[arr[1]][arr[2]].name);
+		if (self.data.in[arr[1]] !== undefined && self.data.in[arr[1]][arr[2]] !== undefined) {
+			self.setVariable(arr[1] + '_output_' + arr[3] + '_input', self.data.in[arr[1]][arr[2]].name);
+		}
 		self.checkFeedbacks();
 		self.checkFeedbacks(arr[1] + '_selected_source');
 		self.checkFeedbacks(arr[1] + '_input_bg');
