@@ -1030,8 +1030,12 @@ instance.prototype.update_variables = function (system) {
 			name: l + '_selected_source'
 		});
 
-		self.setVariable(l + '_selected_destination', outlist[0].label);
-		self.setVariable(l + '_selected_source', inlist[0].label);
+		if (outlist[0] !== undefined) {
+			self.setVariable(l + '_selected_destination', outlist[0].label);
+		}
+		if (inlist[0].label !== undefined) {
+			self.setVariable(l + '_selected_source', inlist[0].label);
+		}
 
 		self.setVariableDefinitions(variables);
 	}
