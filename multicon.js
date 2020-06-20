@@ -729,13 +729,13 @@ instance.prototype.action = function(action) {
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
-			inlist[s] = { id: s, label: num + ': ' + dat.name }
+			inlist[s] = { id: s, label: dat.name }
 		}
 
 		for (var s in self.data.out[l]) {
 			var dat = self.data.out[l][s];
 			var num = parseInt(s);
-			outlist[s] = { id: s, label: num + ': ' + dat.name }
+			outlist[s] = { id: s, label: dat.name }
 		}
 	
 		switch (action.action) {
@@ -837,13 +837,13 @@ instance.prototype.init_presets = function () {
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
-			inlist[s] = { id: s, label: num + ': ' + dat.name }
+			inlist[s] = { id: s, label: dat.name }
 		}
 
 		for (var s in self.data.out[l]) {
 			var dat = self.data.out[l][s];
 			var num = parseInt(s);
-			outlist[s] = { id: s, label: num + ': ' + dat.name }
+			outlist[s] = { id: s, label: dat.name }
 		}
 
 		presets.push({
@@ -1167,13 +1167,13 @@ instance.prototype.init_feedback = function (system) {
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
-			inlist[s] = { id: s, label: num + ': ' + dat.name }
+			inlist[s] = { id: s, label: dat.name }
 		}
 
 		for (var s in self.data.out[l]) {
 			var dat = self.data.out[l][s];
 			var num = parseInt(s);
-			outlist[s] = { id: s, label: num + ': ' + dat.name }
+			outlist[s] = { id: s, label: dat.name }
 		}
 	
 		feedbacks[l + '_input_bg'] = {
