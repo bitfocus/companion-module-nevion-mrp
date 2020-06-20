@@ -297,67 +297,78 @@ instance.prototype.nevion_read_in = function(msg) {
 
 // SSPI - Input signal state (present/missing?)
 instance.prototype.nevion_read_sspi = function(msg) {
-
 	var self = this;
-	var arr = msg.split(/ /);
+	var lines = msg.split(/\n/);
 
-	// Video level
-	if (self.data.sspi[arr[1]] === undefined) {
-		self.data.sspi[arr[1]] = {};
+	for (var i = 0; i < lines.length; ++i) {
+		var line = lines[i];
+		var arr = line.split(/ /);
+
+		// Video level
+		if (self.data.sspi[arr[1]] === undefined) {
+			self.data.sspi[arr[1]] = {};
+		}
+
+		// { l1: {  '20':   'p' } }
+		//   ^level ^input  ^presence
+
+		// p = present, m = missing, u = unknown
+
+		self.data.sspi[arr[1]][arr[2]] = arr[3];
+		debug('sspi: %o', self.data.sspi);
+
+		// In case router does not support inlist, create inputs here
+		if (self.data.in[arr[1]] === undefined) {
+			self.data.in[arr[1]] = {};
+		}
+
+		if (self.data.in[arr[1]][arr[2]] === undefined) {
+			self.data.in[arr[1]][arr[2]] = {
+				name: (parseInt(arr[2]) + 1),
+				long_name: 'Input ' + (parseInt(arr[2]) + 1),
+				desc: ''
+			};
+			debug('New data.in: %o', self.data.in);
+		}
+
+		self.checkFeedbacks(arr[1] + '_source_missing');
 	}
-
-	// { l1: {  '20':   'p' } }
-	//   ^level ^input  ^presence
-
-	// p = present, m = missing, u = unknown
-
-	self.data.sspi[arr[1]][arr[2]] = arr[3];
-
-	// In case router does not support inlist, create inputs here
-	if (self.data.in[arr[1]] === undefined) {
-		self.data.in[arr[1]] = {};
-	}
-
-	if (self.data.in[arr[1]][arr[2]] === undefined) {
-		self.data.in[arr[1]][arr[2]] = {
-			name: (parseInt(arr[2]) + 1),
-			long_name: 'Input ' + (parseInt(arr[2]) + 1),
-			desc: ''
-		};
-	}
-
-	self.checkFeedbacks(l + '_source_missing');
 }
 
 // SSPO - Output signal state (present/missing?)
 instance.prototype.nevion_read_sspo = function(msg) {
-
 	var self = this;
-	var arr = msg.split(/ /);
 
-	// Video level
-	if (self.data.sspo[arr[1]] === undefined) {
-		self.data.sspo[arr[1]] = {};
-	}
+	var lines = msg.split(/\n/);
 
-	// { l1: {  '20':   'p' } }
-	//   ^level ^output  ^presence
+	for (var i = 0; i < lines.length; ++i) {
+		var line = lines[i];
+		var arr = line.split(/ /);
 
-	// p = present, m = missing, u = unknown
+		// Video level
+		if (self.data.sspo[arr[1]] === undefined) {
+			self.data.sspo[arr[1]] = {};
+		}
 
-	self.data.sspo[arr[1]][arr[2]] = arr[3];
+		// { l1: {  '20':   'p' } }
+		//   ^level ^output  ^presence
 
-	// In case router does not support outlist, create outputs here
-	if (self.data.out[arr[1]] === undefined) {
-		self.data.out[arr[1]] = {};
-	}
+		// p = present, m = missing, u = unknown
 
-	if (self.data.out[arr[1]][arr[2]] === undefined) {
-		self.data.out[arr[1]][arr[2]] = {
-			name: parseInt(arr[2]) + 1,
-			long_name: 'Output ' + (parseInt(arr[2]) + 1),
-			desc: ''
-		};
+		self.data.sspo[arr[1]][arr[2]] = arr[3];
+
+		// In case router does not support outlist, create outputs here
+		if (self.data.out[arr[1]] === undefined) {
+			self.data.out[arr[1]] = {};
+		}
+
+		if (self.data.out[arr[1]][arr[2]] === undefined) {
+			self.data.out[arr[1]][arr[2]] = {
+				name: parseInt(arr[2]) + 1,
+				long_name: 'Output ' + (parseInt(arr[2]) + 1),
+				desc: ''
+			};
+		}
 	}
 }
 
@@ -494,7 +505,9 @@ instance.prototype.process_message_queue = function() {
 			if (line == '') {
 				self.process_nevion_message();
 				self.message_command = "";
-				self.state = self.STATE_IDLE;
+				// Let's skip this state system, as it is not really needed
+				// and complicates things
+				// self.state = self.STATE_IDLE;
 			}
 			else {
 				self.message_command = self.message_command + line + "\n";
@@ -634,13 +647,13 @@ instance.prototype.actions = function(system) {
 		for (var s in self.data.in[l]) {
 			var dat = self.data.in[l][s];
 			var num = parseInt(s);
-			inlist[s] = { id: s, label: num + ': ' + dat.name }
+			inlist[s] = { id: s, label: dat.name }
 		}
 
 		for (var s in self.data.out[l]) {
 			var dat = self.data.out[l][s];
 			var num = parseInt(s);
-			outlist[s] = { id: s, label: num + ': ' + dat.name }
+			outlist[s] = { id: s, label: dat.name }
 		}
 
 		actionlist['route_' + l] = {
@@ -1112,7 +1125,9 @@ instance.prototype.update_variables = function (system) {
 				name: l + '_output_' + i + '_input'
 			});
 
-			self.setVariable(l + '_output_' + i + '_input', inlist[self.data.x[l][i]].label);
+			if (inlist[self.data.x[l]] !== undefined && inlist[self.data.x[l][i]] !== undefined) {
+				self.setVariable(l + '_output_' + i + '_input', inlist[self.data.x[l][i]].label);
+			}
 		}
 
 		variables.push({
