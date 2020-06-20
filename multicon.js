@@ -1033,7 +1033,7 @@ instance.prototype.update_variables = function (system) {
 		if (outlist[0] !== undefined) {
 			self.setVariable(l + '_selected_destination', outlist[0].label);
 		}
-		if (inlist[0].label !== undefined) {
+		if (inlist[0] !== undefined) {
 			self.setVariable(l + '_selected_source', inlist[0].label);
 		}
 
