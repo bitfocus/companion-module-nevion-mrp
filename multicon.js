@@ -46,6 +46,7 @@ instance.prototype.init = function() {
 		in: {},
 		out: {},
 		sspi: {},
+		sspo: {},
 		l: {}
 	};
 
@@ -84,6 +85,7 @@ instance.prototype.init_tcp = function() {
 			debug("Network error", err);
 			self.status(self.STATE_ERROR, err);
 			self.log('error',"Network error: " + err.message);
+			self.stopPingtimer();
 		});
 
 		self.socket.on('connect', function () {
@@ -95,6 +97,7 @@ instance.prototype.init_tcp = function() {
 				in: {},
 				out: {},
 				sspi: {},
+				sspo: {},
 				l: {}
 			};
 
@@ -104,6 +107,7 @@ instance.prototype.init_tcp = function() {
 
 			self.socket.send("llist\n\n")
 
+			self.startPingtimer();
 		})
 
 		self.socket.on('data', function (data) {
@@ -127,6 +131,27 @@ instance.prototype.init_tcp = function() {
 	}
 };
 
+instance.prototype.startPingtimer = function () {
+	var self = this;
+
+	self.stopPingtimer();
+
+	self.pingTimer = setInterval(function () {
+		if (self.socket) {
+			self.socket.send("ping\n\n");
+		}
+	}, 4000);
+};
+
+instance.prototype.stopPingtimer = function () {
+	var self = this;
+
+	if (self.pingTimer) {
+		clearInterval(self.pingTimer);
+		self.pingTimer = undefined;
+	}
+}
+
 // A function for throttling the number of action updates.
 instance.prototype.actions_delayed = function() {
 	var self = this;
@@ -135,14 +160,13 @@ instance.prototype.actions_delayed = function() {
 		clearTimeout(self.actionstimer);
 	}
 
-	self.actionstimer = setTimeout(function(me) {
-		me.update_variables(); 	// Export Variables
-		me.init_feedback();			// Export Feedbacks
-		me.checkFeedbacks();		// Export Feedbacks
-		me.actions();						// Export Actions
-		me.init_presets();			// Export Presets
-	}, 50, self);
-
+	self.actionstimer = setTimeout(function() {
+		self.update_variables(); // Export Variables
+		self.init_feedback();    // Export Feedbacks
+		self.checkFeedbacks();   // Export Feedbacks
+		self.actions();          // Export Actions
+		self.init_presets();     // Export Presets
+	}, 50);
 };
 
 // Nevion commands, and how to store/read/use them
@@ -198,9 +222,14 @@ instance.prototype.nevion_read_llist = function(msg) {
 		}
 		self.socket.send("inlist " + level + "\n\n" );
 		self.socket.send("outlist " + level + "\n\n" );
+		self.socket.send("sspi " + level + "\n\n" );
+		self.socket.send("sspo " + level + "\n\n" );
 		self.socket.send("s " + level + "\n\n" );
 
-}
+		// Should give us live events about sspi/sspo too
+		self.socket.send("syntax v3\n\n" );
+
+	}
 
 	// Update actionlist with new info
 	self.actions_delayed();
@@ -280,8 +309,56 @@ instance.prototype.nevion_read_sspi = function(msg) {
 	// { l1: {  '20':   'p' } }
 	//   ^level ^input  ^presence
 
+	// p = present, m = missing, u = unknown
+
 	self.data.sspi[arr[1]][arr[2]] = arr[3];
-	
+
+	// In case router does not support inlist, create inputs here
+	if (self.data.in[arr[1]] === undefined) {
+		self.data.in[arr[1]] = {};
+	}
+
+	if (self.data.in[arr[1]][arr[2]] === undefined) {
+		self.data.in[arr[1]][arr[2]] = {
+			name: (parseInt(arr[2]) + 1),
+			long_name: 'Input ' + (parseInt(arr[2]) + 1),
+			desc: ''
+		};
+	}
+
+	self.checkFeedbacks(l + '_source_missing');
+}
+
+// SSPO - Output signal state (present/missing?)
+instance.prototype.nevion_read_sspo = function(msg) {
+
+	var self = this;
+	var arr = msg.split(/ /);
+
+	// Video level
+	if (self.data.sspo[arr[1]] === undefined) {
+		self.data.sspo[arr[1]] = {};
+	}
+
+	// { l1: {  '20':   'p' } }
+	//   ^level ^output  ^presence
+
+	// p = present, m = missing, u = unknown
+
+	self.data.sspo[arr[1]][arr[2]] = arr[3];
+
+	// In case router does not support outlist, create outputs here
+	if (self.data.out[arr[1]] === undefined) {
+		self.data.out[arr[1]] = {};
+	}
+
+	if (self.data.out[arr[1]][arr[2]] === undefined) {
+		self.data.out[arr[1]][arr[2]] = {
+			name: parseInt(arr[2]) + 1,
+			long_name: 'Output ' + (parseInt(arr[2]) + 1),
+			desc: ''
+		};
+	}
 }
 
 // Login
@@ -532,6 +609,8 @@ instance.prototype.config_fields = function () {
 // When module gets deleted
 instance.prototype.destroy = function() {
 	var self = this;
+
+	self.stopPingtimer();
 
 	if (self.socket !== undefined) {
 		self.socket.destroy();
@@ -917,6 +996,14 @@ instance.prototype.init_presets = function () {
 							fg: self.rgb(255,255,255),
 							input: i
 						}
+					},
+					{
+						type: l + '_source_missing',
+						options: {
+							bg: self.rgb(255,0,0),
+							fg: self.rgb(255,255,255),
+							input: i
+						}
 					}
 				],
 				actions: [
@@ -951,7 +1038,15 @@ instance.prototype.init_presets = function () {
 								input: i,
 								output: o
 							}
-						}
+						},
+						{
+							type: l + '_source_missing',
+							options: {
+								bg: self.rgb(255,0,0),
+								fg: self.rgb(255,255,255),
+								input: i
+							}
+						}	
 					],
 					actions: [
 						{
@@ -1224,6 +1319,33 @@ instance.prototype.init_feedback = function (system) {
 				}
 			]
 		};
+
+		feedbacks[ l + '_source_missing' ] = {
+			label: l + ' Change background color if the selected source is missing a valid signal',
+			description: 'If the selected source is missing a valid signal, change background color of the bank',
+			options: [
+				{
+					type: 'colorpicker',
+					label: 'Foreground color',
+					id: 'fg',
+					default: self.rgb(255,255,255)
+
+				},
+				{
+					type: 'colorpicker',
+					label: 'Background color',
+					id: 'bg',
+					default: self.rgb(255,0,0)
+				},
+				{
+					type: 'dropdown',
+					label: 'Input',
+					id: 'input',
+					default: '0',
+					choices: inlist
+				}
+			]
+		};
 	}
 
 	self.setFeedbackDefinitions(feedbacks);
@@ -1286,6 +1408,15 @@ instance.prototype.feedback = function(feedback, bank) {
 
 		else if (feedback.type == l + '_take_tally_dest') {
 			if (parseInt(feedback.options.output) == self.queuedDest) {
+				return {
+					color: feedback.options.fg,
+					bgcolor: feedback.options.bg
+				};
+			}
+		}
+
+		else if (feedback.type === l + '_source_missing') {
+			if (self.data.sspi[l] && self.data.sspi[l][feedback.options.input] === 'm') {
 				return {
 					color: feedback.options.fg,
 					bgcolor: feedback.options.bg
