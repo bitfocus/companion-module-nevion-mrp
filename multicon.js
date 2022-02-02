@@ -711,7 +711,7 @@ instance.prototype.actions = function(system) {
 		};
 	}
 
-	self.system.emit('instance_actions', self.id, actionlist);
+	self.setActions(actionlist);
 };
 
 // Setup Action Logic
