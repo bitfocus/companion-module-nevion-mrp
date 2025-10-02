@@ -28,3 +28,6 @@ Module to control various Nevion Videohubs via the closed MRP protocol. It reads
 **V2.0.1**
 * Fixed a bug that chrashed companion when a physical Nevion Control panel got presed
 * Fixid a bug that preventet varibles updating to the new name after button press
+
+**V3.0.1**
+* Transfered to Companion 3
