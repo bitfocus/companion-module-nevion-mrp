@@ -1,5 +1,5 @@
 {
-	"name": "nevion.mrp",
+	"name": "nevion-mrp",
 	"version": "3.0.1",
 	"main": "dist/main.js",
 	"type": "module",
