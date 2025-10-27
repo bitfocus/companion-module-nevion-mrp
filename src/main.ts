@@ -1,4 +1,3 @@
-// src/main.ts
 import {
 	InstanceBase,
 	runEntrypoint,
@@ -367,8 +366,11 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.data.x[level] ||= {}
 		this.data.x[level][output] = input
 
-		const inLabel = this.data.in[level]?.[input]?.name
-		if (inLabel) this.setVariableValues({ [`${level}_output_${output}_input`]: inLabel })
+		const inLabel = this.ioLabel(level, 'in', input)
+		this.setVariableValues({
+			[`${level}_output_${output}_input`]: inLabel,
+			[`${level}_output_${output}_input_index`]: input,
+		})
 
 		this.checkFeedbacks()
 		this.checkFeedbacks(`${level}_selected_source`)
@@ -489,7 +491,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			for (const o of Object.keys(outs)) {
 				values[`${level}_output_${o}`] = this.ioLabel(level, 'out', o)
 				const routed = this.data.x[level]?.[o]
-				if (routed) values[`${level}_output_${o}_input`] = this.ioLabel(level, 'in', routed)
+				if (routed) {
+					values[`${level}_output_${o}_input`] = this.ioLabel(level, 'in', routed)
+					values[`${level}_output_${o}_input_index`] = routed // NEU: gerouteter Input-Index
+				}
 			}
 
 			const firstOut = Object.keys(outs)[0]

@@ -24,6 +24,10 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 				variableId: `${level}_output_${o}_input`,
 				name: `Label of input routed to output ${o} (${level})`,
 			})
+			variables.push({
+				variableId: `${level}_output_${o}_input_index`,
+				name: `Index of input routed to output ${o} (${level})`,
+			})
 		}
 
 		variables.push({
