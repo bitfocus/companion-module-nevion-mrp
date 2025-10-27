@@ -31,3 +31,6 @@ Module to control various Nevion Videohubs via the closed MRP protocol. It reads
 
 **V3.0.1**
 * Transfered to Companion 3
+
+**V3.1.0**
+* Added Variable for Routed Index per Destination
