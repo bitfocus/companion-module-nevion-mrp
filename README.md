@@ -34,3 +34,7 @@ Module to control various Nevion Videohubs via the closed MRP protocol. It reads
 
 **V3.1.0**
 * Added Variable for Routed Index per Destination
+
+**V4.0.0**
+* Updated to Companion module API 2.1, which requires Companion 5.0 or later
+* Reduced CPU and memory use when connecting to a router and polling crosspoints
