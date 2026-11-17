@@ -1,5 +1,6 @@
 import { type CompanionFeedbackDefinitions, combineRgb } from '@companion-module/base'
-import type { ModuleInstance } from './main.js'
+import type ModuleInstance from './main.js'
+import { optionId } from './util.js'
 
 function choicesFor(map?: Record<string, { name: string }>) {
 	return map ? Object.entries(map).map(([id, v]) => ({ id, label: v.name })) : []
@@ -22,9 +23,10 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				{ id: 'input', type: 'dropdown', label: 'Input', default: '0', choices: inChoices },
 				{ id: 'output', type: 'dropdown', label: 'Output', default: '0', choices: outChoices },
 			],
+			affectedProperties: ['color', 'bgcolor'],
 			callback: (fb) => {
-				const input = String(fb.options.input ?? '0')
-				const output = String(fb.options.output ?? '0')
+				const input = optionId(fb.options.input)
+				const output = optionId(fb.options.output)
 				const routed = self.data.x[level]?.[output]
 				return routed === input ? { color: fb.options.fg as number, bgcolor: fb.options.bg as number } : {}
 			},
@@ -39,8 +41,9 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				{ id: 'bg', type: 'colorpicker', label: 'Background', default: combineRgb(255, 255, 0) },
 				{ id: 'output', type: 'dropdown', label: 'Output', default: '0', choices: outChoices },
 			],
+			affectedProperties: ['color', 'bgcolor'],
 			callback: (fb) => {
-				const out = String(fb.options.output ?? '0')
+				const out = optionId(fb.options.output)
 				return out === self.selectedDest ? { color: fb.options.fg as number, bgcolor: fb.options.bg as number } : {}
 			},
 		}
@@ -54,8 +57,9 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				{ id: 'bg', type: 'colorpicker', label: 'Background', default: combineRgb(255, 255, 255) },
 				{ id: 'input', type: 'dropdown', label: 'Input', default: '0', choices: inChoices },
 			],
+			affectedProperties: ['color', 'bgcolor'],
 			callback: (fb) => {
-				const inp = String(fb.options.input ?? '0')
+				const inp = optionId(fb.options.input)
 				const routed = self.data.x[level]?.[self.selectedDest]
 				return routed === inp ? { color: fb.options.fg as number, bgcolor: fb.options.bg as number } : {}
 			},
@@ -69,6 +73,7 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				{ id: 'fg', type: 'colorpicker', label: 'Foreground', default: combineRgb(255, 255, 255) },
 				{ id: 'bg', type: 'colorpicker', label: 'Background', default: combineRgb(0, 51, 204) },
 			],
+			affectedProperties: ['color', 'bgcolor'],
 			callback: (fb) => (self.queuedCmd ? { color: fb.options.fg as number, bgcolor: fb.options.bg as number } : {}),
 		}
 
@@ -81,8 +86,9 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				{ id: 'bg', type: 'colorpicker', label: 'Background', default: combineRgb(0, 51, 204) },
 				{ id: 'input', type: 'dropdown', label: 'Input', default: '0', choices: inChoices },
 			],
+			affectedProperties: ['color', 'bgcolor'],
 			callback: (fb) => {
-				const inp = String(fb.options.input ?? '0')
+				const inp = optionId(fb.options.input)
 				return inp === self.queuedSource && self.selectedDest === self.queuedDest
 					? { color: fb.options.fg as number, bgcolor: fb.options.bg as number }
 					: {}
@@ -98,8 +104,9 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				{ id: 'bg', type: 'colorpicker', label: 'Background', default: combineRgb(0, 51, 204) },
 				{ id: 'output', type: 'dropdown', label: 'Output', default: '0', choices: outChoices },
 			],
+			affectedProperties: ['color', 'bgcolor'],
 			callback: (fb) => {
-				const out = String(fb.options.output ?? '0')
+				const out = optionId(fb.options.output)
 				return out === self.queuedDest ? { color: fb.options.fg as number, bgcolor: fb.options.bg as number } : {}
 			},
 		}
@@ -113,8 +120,9 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				{ id: 'bg', type: 'colorpicker', label: 'Background', default: combineRgb(255, 0, 0) },
 				{ id: 'input', type: 'dropdown', label: 'Input', default: '0', choices: inChoices },
 			],
+			affectedProperties: ['color', 'bgcolor'],
 			callback: (fb) => {
-				const inp = String(fb.options.input ?? '0')
+				const inp = optionId(fb.options.input)
 				const st = self.data.sspi[level]?.[inp]
 				return st === 'm' ? { color: fb.options.fg as number, bgcolor: fb.options.bg as number } : {}
 			},

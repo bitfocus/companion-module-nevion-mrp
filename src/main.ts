@@ -1,7 +1,7 @@
 import {
 	InstanceBase,
-	runEntrypoint,
 	InstanceStatus,
+	type InstanceTypes,
 	type SomeCompanionConfigField,
 	TCPHelper,
 	type CompanionVariableValues,
@@ -12,6 +12,15 @@ import { UpdateVariableDefinitions } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
 import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks } from './feedbacks.js'
+import { UpdatePresets } from './presets.js'
+
+// Actions, feedbacks and variables are generated per router level, so they keep the generic definitions
+export interface ModuleSchema extends InstanceTypes {
+	config: ModuleConfig
+	secrets: undefined
+}
+
+export { UpgradeScripts }
 
 type LevelId = string
 type IoIndex = string
@@ -42,7 +51,7 @@ interface RouterState {
 	l: Record<LevelId, LevelsInfo>
 }
 
-export class ModuleInstance extends InstanceBase<ModuleConfig> {
+export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	private socket?: TCPHelper
 	private pingTimer?: NodeJS.Timeout
 	private xptTimer?: NodeJS.Timeout
@@ -84,6 +93,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 		this.updateActions()
 		this.updateFeedbacks()
+		this.updatePresets()
 		this.updateVariableDefinitions()
 	}
 
@@ -104,6 +114,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		await this.initConnection()
 		this.updateActions()
 		this.updateFeedbacks()
+		this.updatePresets()
 		this.updateVariableDefinitions()
 	}
 
@@ -116,6 +127,9 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 	updateFeedbacks(): void {
 		UpdateFeedbacks(this)
+	}
+	updatePresets(): void {
+		UpdatePresets(this)
 	}
 	updateVariableDefinitions(): void {
 		UpdateVariableDefinitions(this)
@@ -372,9 +386,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			[`${level}_output_${output}_input_index`]: input,
 		})
 
-		this.checkFeedbacks()
-		this.checkFeedbacks(`${level}_selected_source`)
-		this.checkFeedbacks(`${level}_input_bg`)
+		this.checkFeedbacks(`${level}_selected_source`, `${level}_input_bg`)
 	}
 
 	private handleIn(line: string): void {
@@ -508,9 +520,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		if (hasIO) {
 			this.updateActions()
 			this.updateFeedbacks()
+			this.updatePresets()
 			this.updateVariableDefinitions()
 		}
 	}
 }
-
-void runEntrypoint(ModuleInstance, UpgradeScripts)

@@ -16,21 +16,25 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/bitfocus/companion-module-nevion.mrp.git"
+		"url": "git+https://github.com/bitfocus/companion-module-nevion-mrp.git"
+	},
+	"engines": {
+		"node": "^26",
+		"yarn": "^4"
 	},
 	"dependencies": {
-		"@companion-module/base": "^1.12.1"
+		"@companion-module/base": "~2.2.2"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.8.0",
-		"@types/node": "^22.10.2",
-		"eslint": "^9.17.0",
+		"@companion-module/tools": "^3.2.1",
+		"@types/node": "^26.6.6",
+		"eslint": "^10.15.0",
 		"husky": "^9.1.7",
-		"lint-staged": "^15.2.11",
-		"prettier": "^3.4.2",
-		"rimraf": "^6.0.1",
-		"typescript": "~5.5.4",
-		"typescript-eslint": "^8.18.1"
+		"lint-staged": "^17.6.0",
+		"prettier": "^3.10.1",
+		"rimraf": "^6.1.4",
+		"typescript": "~6.0.3",
+		"typescript-eslint": "^8.72.2"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
 	"lint-staged": {
@@ -41,5 +45,5 @@
 			"yarn lint:raw --fix"
 		]
 	},
-	"packageManager": "yarn@4.13.0"
+	"packageManager": "yarn@4.18.1"
 }

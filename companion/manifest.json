@@ -1,4 +1,6 @@
 {
+	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
+	"type": "connection",
 	"id": "nevion-mrp",
 	"name": "nevion-mrp",
 	"shortname": "mrp",
@@ -8,10 +10,11 @@
 	"repository": "git+https://github.com/bitfocus/companion-module-nevion-mrp.git",
 	"bugs": "https://github.com/bitfocus/companion-module-nevion-mrp/issues",
 	"maintainers": [
-{
+		{
 			"name": "William Viker",
 			"email": "william.viker@gmail.com"
-		},{
+		},
+		{
 			"name": "Andreas Thomsen",
 			"email": "mc-hauge@hotmail.com"
 		},
@@ -21,7 +24,7 @@
 		}
 	],
 	"runtime": {
-		"type": "node22",
+		"type": "node26",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
 		"entrypoint": "../dist/main.js"
@@ -29,5 +32,5 @@
 	"legacyIds": [],
 	"manufacturer": "Nevion",
 	"products": ["MRP / Multicon"],
-	"keywords": ["Router","Matrix","SDI"]
+	"keywords": ["Router", "Matrix", "SDI"]
 }
