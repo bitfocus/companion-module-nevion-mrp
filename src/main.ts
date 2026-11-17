@@ -25,6 +25,9 @@ export { UpgradeScripts }
 type LevelId = string
 type IoIndex = string
 
+// The input index the router reports for a disconnected output
+const DISCONNECTED_INPUT = 'd'
+
 interface IoLabel {
 	name: string
 	long_name: string
@@ -489,6 +492,8 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	}
 
 	public ioLabel(level: string, kind: 'in' | 'out', idx: string): string {
+		if (kind === 'in' && idx === DISCONNECTED_INPUT) return 'Disconnected'
+
 		const rec = (this.data as any)[kind]?.[level]?.[idx] as { name?: string; long_name?: string } | undefined
 		const useLong = this.config.use_long_names === true
 		if (!rec) return String(Number(idx) + 1)
