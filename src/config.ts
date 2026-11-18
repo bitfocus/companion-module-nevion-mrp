@@ -1,7 +1,7 @@
 // src/config.ts
-import { Regex, type SomeCompanionConfigField } from '@companion-module/base'
+import type { SomeCompanionConfigField } from '@companion-module/base'
 
-export interface ModuleConfig {
+export type ModuleConfig = {
 	host: string
 	port: number
 	user: string
@@ -15,7 +15,7 @@ export interface ModuleConfig {
 
 export function GetConfigFields(): SomeCompanionConfigField[] {
 	return [
-		{ type: 'textinput', id: 'host', label: 'Target IP / Hostname', width: 6, regex: Regex.HOSTNAME },
+		{ type: 'textinput', id: 'host', label: 'Target IP / Hostname', width: 6 },
 		{ type: 'number', id: 'port', label: 'Target Port', default: 4381, min: 1, max: 65535, width: 3 },
 		{ type: 'textinput', id: 'user', label: 'Username (optional)', width: 6 },
 		{ type: 'textinput', id: 'pass', label: 'Password (optional)', width: 6 },

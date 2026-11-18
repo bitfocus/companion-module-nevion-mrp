@@ -1,7 +1,7 @@
 import {
 	InstanceBase,
-	runEntrypoint,
 	InstanceStatus,
+	type InstanceTypes,
 	type SomeCompanionConfigField,
 	TCPHelper,
 	type CompanionVariableValues,
@@ -12,6 +12,15 @@ import { UpdateVariableDefinitions } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
 import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks } from './feedbacks.js'
+import { UpdatePresets } from './presets.js'
+
+// Actions, feedbacks and variables are generated per router level, so they keep the generic definitions
+export interface ModuleSchema extends InstanceTypes {
+	config: ModuleConfig
+	secrets: undefined
+}
+
+export { UpgradeScripts }
 
 type LevelId = string
 type IoIndex = string
@@ -42,7 +51,7 @@ interface RouterState {
 	l: Record<LevelId, LevelsInfo>
 }
 
-export class ModuleInstance extends InstanceBase<ModuleConfig> {
+export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	private socket?: TCPHelper
 	private pingTimer?: NodeJS.Timeout
 	private xptTimer?: NodeJS.Timeout
@@ -52,6 +61,11 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	private messageQueue: string[] = []
 	private messageCommand = ''
 	private rxState: 'idle' | 'receiving' = 'idle'
+
+	// Router dumps arrive one line per io, so their effects are collected and sent to Companion in one go
+	private exportTimer?: NodeJS.Timeout
+	private pendingValues: CompanionVariableValues = {}
+	private pendingFeedbacks = new Set<string>()
 
 	public selectedDest: IoIndex = '0'
 	public queuedDest: IoIndex = '-1'
@@ -84,12 +98,15 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 		this.updateActions()
 		this.updateFeedbacks()
+		this.updatePresets()
 		this.updateVariableDefinitions()
 	}
 
 	async destroy(): Promise<void> {
 		this.stopPing()
 		this.stopXptPoll()
+		if (this.exportTimer) clearTimeout(this.exportTimer)
+		this.exportTimer = undefined
 
 		this.socket?.destroy()
 		this.log('debug', 'destroy')
@@ -104,6 +121,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		await this.initConnection()
 		this.updateActions()
 		this.updateFeedbacks()
+		this.updatePresets()
 		this.updateVariableDefinitions()
 	}
 
@@ -116,6 +134,9 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 	updateFeedbacks(): void {
 		UpdateFeedbacks(this)
+	}
+	updatePresets(): void {
+		UpdatePresets(this)
 	}
 	updateVariableDefinitions(): void {
 		UpdateVariableDefinitions(this)
@@ -144,6 +165,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			this.messageQueue = []
 			this.messageCommand = ''
 			this.rxState = 'idle'
+			this.pendingValues = {}
+			this.pendingFeedbacks.clear()
 
 			this.updateStatus(InstanceStatus.Ok, 'Connected')
 
@@ -228,6 +251,29 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				}
 			}
 		}
+
+		this.flushPending()
+	}
+
+	private flushPending(): void {
+		// A scheduled export resends every value and rechecks every feedback, and the definitions may not exist yet
+		if (!this.exportTimer) {
+			if (Object.keys(this.pendingValues).length) this.setVariableValues(this.pendingValues)
+			const [first, ...rest] = this.pendingFeedbacks
+			if (first) this.checkFeedbacks(first, ...rest)
+		}
+
+		this.pendingValues = {}
+		this.pendingFeedbacks.clear()
+	}
+
+	// Level and io lists arrive as a burst, so rebuild the definitions once it has settled
+	private scheduleExport(): void {
+		if (this.exportTimer) clearTimeout(this.exportTimer)
+		this.exportTimer = setTimeout(() => {
+			this.exportTimer = undefined
+			this.exportAll()
+		}, 200)
 	}
 
 	private handleEvent(block: string): void {
@@ -347,7 +393,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			this.sendLine(`s ${level}`)
 		}
 
-		this.exportAll()
+		this.scheduleExport()
 	}
 
 	private handleS(block: string): void {
@@ -364,17 +410,13 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		const output = p[3]
 
 		this.data.x[level] ||= {}
+		if (this.data.x[level][output] === input) return
 		this.data.x[level][output] = input
 
-		const inLabel = this.ioLabel(level, 'in', input)
-		this.setVariableValues({
-			[`${level}_output_${output}_input`]: inLabel,
-			[`${level}_output_${output}_input_index`]: input,
-		})
-
-		this.checkFeedbacks()
-		this.checkFeedbacks(`${level}_selected_source`)
-		this.checkFeedbacks(`${level}_input_bg`)
+		this.pendingValues[`${level}_output_${output}_input`] = this.ioLabel(level, 'in', input)
+		this.pendingValues[`${level}_output_${output}_input_index`] = input
+		this.pendingFeedbacks.add(`${level}_selected_source`)
+		this.pendingFeedbacks.add(`${level}_input_bg`)
 	}
 
 	private handleIn(line: string): void {
@@ -383,7 +425,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		const [, level, idx, name, long_name, desc, unknown] = m
 		this.data.in[level] ||= {}
 		this.data.in[level][idx] = { name, long_name, desc, unknown }
-		this.exportAll()
+		this.scheduleExport()
 	}
 
 	private handleOut(line: string): void {
@@ -392,7 +434,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		const [, level, idx, name, long_name, desc, unknown] = m
 		this.data.out[level] ||= {}
 		this.data.out[level][idx] = { name, long_name, desc, unknown }
-		this.exportAll()
+		this.scheduleExport()
 	}
 
 	private handleSSPI(block: string): void {
@@ -405,19 +447,21 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			const st = p[3] as 'p' | 'm' | 'u'
 
 			this.data.sspi[level] ||= {}
-			this.data.sspi[level][idx] = st
-
-			this.data.in[level] ||= {}
-			this.data.in[level][idx] ||= {
-				name: String(Number(idx) + 1),
-				long_name: `Input ${Number(idx) + 1}`,
-				desc: '',
+			if (this.data.sspi[level][idx] !== st) {
+				this.data.sspi[level][idx] = st
+				this.pendingFeedbacks.add(`${level}_source_missing`)
 			}
 
-			this.checkFeedbacks(`${level}_source_missing`)
+			this.data.in[level] ||= {}
+			if (!this.data.in[level][idx]) {
+				this.data.in[level][idx] = {
+					name: String(Number(idx) + 1),
+					long_name: `Input ${Number(idx) + 1}`,
+					desc: '',
+				}
+				this.scheduleExport()
+			}
 		}
-
-		this.exportAll()
 	}
 
 	private handleSSPO(block: string): void {
@@ -433,14 +477,15 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			this.data.sspo[level][idx] = st
 
 			this.data.out[level] ||= {}
-			this.data.out[level][idx] ||= {
-				name: String(Number(idx) + 1),
-				long_name: `Output ${Number(idx) + 1}`,
-				desc: '',
+			if (!this.data.out[level][idx]) {
+				this.data.out[level][idx] = {
+					name: String(Number(idx) + 1),
+					long_name: `Output ${Number(idx) + 1}`,
+					desc: '',
+				}
+				this.scheduleExport()
 			}
 		}
-
-		this.exportAll()
 	}
 
 	public ioLabel(level: string, kind: 'in' | 'out', idx: string): string {
@@ -503,14 +548,15 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			if (firstIn) values[`${level}_selected_source`] = this.ioLabel(level, 'in', firstIn)
 		}
 
-		if (Object.keys(values).length) this.setVariableValues(values)
-
 		if (hasIO) {
 			this.updateActions()
 			this.updateFeedbacks()
+			this.updatePresets()
 			this.updateVariableDefinitions()
 		}
+
+		// Values must come after the definitions, Companion drops values for undefined variables
+		if (Object.keys(values).length) this.setVariableValues(values)
+		if (hasIO) this.checkAllFeedbacks()
 	}
 }
-
-void runEntrypoint(ModuleInstance, UpgradeScripts)
