@@ -25,6 +25,14 @@ export { UpgradeScripts }
 type LevelId = string
 type IoIndex = string
 
+// The input indexes the router reports for an output without a regular input: disconnected,
+// unknown (for example at start-up, before the router has read the crosspoint) and out of range
+const NO_INPUT_LABELS = new Map<IoIndex, string>([
+	['d', 'Disconnected'],
+	['u', 'Unknown'],
+	['o', 'Out of range'],
+])
+
 interface IoLabel {
 	name: string
 	long_name: string
@@ -489,6 +497,9 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	}
 
 	public ioLabel(level: string, kind: 'in' | 'out', idx: string): string {
+		const noInputLabel = kind === 'in' ? NO_INPUT_LABELS.get(idx) : undefined
+		if (noInputLabel) return noInputLabel
+
 		const rec = (this.data as any)[kind]?.[level]?.[idx] as { name?: string; long_name?: string } | undefined
 		const useLong = this.config.use_long_names === true
 		if (!rec) return String(Number(idx) + 1)
@@ -502,21 +513,27 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		return String(Number(idx) + 1)
 	}
 
-	public clearQueue = (level: LevelId): void => {
+	public clearQueue = (): void => {
 		this.queuedCmd = ''
 		this.queuedDest = '-1'
 		this.queuedSource = '-1'
-		this.bumpFeedbacks(level)
+		this.bumpFeedbacks()
 	}
 
-	public bumpFeedbacks = (level: LevelId): void => {
-		this.checkFeedbacks(`${level}_take`)
-		this.checkFeedbacks(`${level}_take_tally_source`)
-		this.checkFeedbacks(`${level}_take_tally_dest`)
-		this.checkFeedbacks(`${level}_take_tally_route`)
-		this.checkFeedbacks(`${level}_input_bg`)
-		this.checkFeedbacks(`${level}_selected_source`)
-		this.checkFeedbacks(`${level}_selected_destination`)
+	// Every level reads the same selected destination and queued take, so recheck them all
+	public bumpFeedbacks = (): void => {
+		const ids = Object.keys(this.data.l).flatMap((level) => [
+			`${level}_take`,
+			`${level}_take_tally_source`,
+			`${level}_take_tally_dest`,
+			`${level}_take_tally_route`,
+			`${level}_input_bg`,
+			`${level}_selected_source`,
+			`${level}_selected_destination`,
+		])
+		// No ids would recheck every feedback
+		const [first, ...rest] = ids
+		if (first) this.checkFeedbacks(first, ...rest)
 	}
 
 	private exportAll(): void {

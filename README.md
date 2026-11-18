@@ -38,3 +38,7 @@ Module to control various Nevion Videohubs via the closed MRP protocol. It reads
 **V4.0.0**
 * Updated to Companion module API 2.1, which requires Companion 5.0 or later
 * Reduced CPU and memory use when connecting to a router and polling crosspoints
+
+**V4.0.1**
+* Fixed selection and take feedbacks on other levels not updating after an action
+* Disconnected, unknown and out-of-range inputs now show as Disconnected, Unknown and Out of range instead of NaN
