@@ -25,8 +25,13 @@ export { UpgradeScripts }
 type LevelId = string
 type IoIndex = string
 
-// The input index the router reports for a disconnected output
-const DISCONNECTED_INPUT = 'd'
+// The input indexes the router reports for an output without a regular input: disconnected,
+// unknown (for example at start-up, before the router has read the crosspoint) and out of range
+const NO_INPUT_LABELS = new Map<IoIndex, string>([
+	['d', 'Disconnected'],
+	['u', 'Unknown'],
+	['o', 'Out of range'],
+])
 
 interface IoLabel {
 	name: string
@@ -492,7 +497,8 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	}
 
 	public ioLabel(level: string, kind: 'in' | 'out', idx: string): string {
-		if (kind === 'in' && idx === DISCONNECTED_INPUT) return 'Disconnected'
+		const noInputLabel = kind === 'in' ? NO_INPUT_LABELS.get(idx) : undefined
+		if (noInputLabel) return noInputLabel
 
 		const rec = (this.data as any)[kind]?.[level]?.[idx] as { name?: string; long_name?: string } | undefined
 		const useLong = this.config.use_long_names === true
