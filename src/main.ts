@@ -513,21 +513,27 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		return String(Number(idx) + 1)
 	}
 
-	public clearQueue = (level: LevelId): void => {
+	public clearQueue = (): void => {
 		this.queuedCmd = ''
 		this.queuedDest = '-1'
 		this.queuedSource = '-1'
-		this.bumpFeedbacks(level)
+		this.bumpFeedbacks()
 	}
 
-	public bumpFeedbacks = (level: LevelId): void => {
-		this.checkFeedbacks(`${level}_take`)
-		this.checkFeedbacks(`${level}_take_tally_source`)
-		this.checkFeedbacks(`${level}_take_tally_dest`)
-		this.checkFeedbacks(`${level}_take_tally_route`)
-		this.checkFeedbacks(`${level}_input_bg`)
-		this.checkFeedbacks(`${level}_selected_source`)
-		this.checkFeedbacks(`${level}_selected_destination`)
+	// Every level reads the same selected destination and queued take, so recheck them all
+	public bumpFeedbacks = (): void => {
+		const ids = Object.keys(this.data.l).flatMap((level) => [
+			`${level}_take`,
+			`${level}_take_tally_source`,
+			`${level}_take_tally_dest`,
+			`${level}_take_tally_route`,
+			`${level}_input_bg`,
+			`${level}_selected_source`,
+			`${level}_selected_destination`,
+		])
+		// No ids would recheck every feedback
+		const [first, ...rest] = ids
+		if (first) this.checkFeedbacks(first, ...rest)
 	}
 
 	private exportAll(): void {

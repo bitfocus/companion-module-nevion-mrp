@@ -30,7 +30,7 @@ export function UpdateActions(self: ModuleInstance): void {
 				const source = optionId(options.source)
 				const destination = optionId(options.destination)
 				self.sendLine(`x ${level} ${source} ${destination}`)
-				self.bumpFeedbacks(level)
+				self.bumpFeedbacks()
 			},
 		}
 
@@ -49,7 +49,7 @@ export function UpdateActions(self: ModuleInstance): void {
 				const dest = optionId(options.destination)
 				self.selectedDest = dest
 				self.setVariableValues({ [`${level}_selected_destination`]: self.data.out[level]?.[dest]?.name ?? dest })
-				self.bumpFeedbacks(level)
+				self.bumpFeedbacks()
 			},
 		}
 
@@ -68,10 +68,10 @@ export function UpdateActions(self: ModuleInstance): void {
 						[`${level}_selected_destination`]: self.data.out[level]?.[self.queuedDest]?.name ?? self.queuedDest,
 						[`${level}_selected_source`]: self.data.in[level]?.[self.queuedSource]?.name ?? self.queuedSource,
 					})
-					self.bumpFeedbacks(level)
+					self.bumpFeedbacks()
 				} else {
 					self.sendLine(`x ${level} ${src} ${self.selectedDest}`)
-					self.bumpFeedbacks(level)
+					self.bumpFeedbacks()
 				}
 			},
 		}
@@ -81,11 +81,11 @@ export function UpdateActions(self: ModuleInstance): void {
 			options: [],
 			callback: () => {
 				if (self.queuedCmd) self.sendLine(self.queuedCmd)
-				self.clearQueue(level)
+				self.clearQueue()
 			},
 		}
 
-		actions[`clear_${level}`] = { name: `Clear (${levelNice})`, options: [], callback: () => self.clearQueue(level) }
+		actions[`clear_${level}`] = { name: `Clear (${levelNice})`, options: [], callback: () => self.clearQueue() }
 	}
 
 	self.setActionDefinitions(actions)
