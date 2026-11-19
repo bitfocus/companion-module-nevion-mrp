@@ -8,7 +8,7 @@ Module to control various Nevion Videohubs via the closed MRP protocol. It reads
 * All Nevion Videohubs, from small to big :)
 
 **Availble commands for Nevion VikinX Routers**
-* Route
+* Route: type `d` as the source to disconnect the output, on levels that support disconnect
 * Select_destination
 * Route_source
 * Take
