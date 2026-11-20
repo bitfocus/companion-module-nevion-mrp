@@ -17,7 +17,17 @@ export function UpdateActions(self: ModuleInstance): void {
 		actions[`route_${level}`] = {
 			name: actionTitle,
 			options: [
-				{ id: 'source', type: 'dropdown', label: 'Source', default: inChoices[0]?.id ?? '0', choices: inChoices },
+				{
+					id: 'source',
+					type: 'dropdown',
+					label: 'Source',
+					default: inChoices[0]?.id ?? '0',
+					choices: inChoices,
+					// Under the v3 syntax this module asks for, the router takes `d` as the input that disconnects an
+					// output. It is not a choice, because Bitfocus Buttons makes a router port of every choice.
+					allowCustom: true,
+					regex: '/^d$/',
+				},
 				{
 					id: 'destination',
 					type: 'dropdown',
