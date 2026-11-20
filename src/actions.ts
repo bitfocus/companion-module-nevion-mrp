@@ -27,7 +27,6 @@ export function UpdateActions(self: ModuleInstance): void {
 					// output. It is not a choice, because Bitfocus Buttons makes a router port of every choice.
 					allowCustom: true,
 					regex: '/^d$/',
-					tooltip: 'Type d to disconnect the output, on levels that support disconnect.',
 				},
 				{
 					id: 'destination',
