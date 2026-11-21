@@ -5,7 +5,7 @@
 	"name": "nevion-mrp",
 	"shortname": "mrp",
 	"description": "Controls Nevion / VikinX Router Systems",
-	"version": "4.0.2",
+	"version": "4.1.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-nevion-mrp.git",
 	"bugs": "https://github.com/bitfocus/companion-module-nevion-mrp/issues",

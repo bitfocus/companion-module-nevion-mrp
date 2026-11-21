@@ -2,7 +2,9 @@ import type ModuleInstance from './main.js'
 import type { CompanionVariableDefinitions } from '@companion-module/base'
 
 export function UpdateVariableDefinitions(self: ModuleInstance): void {
-	const variables: CompanionVariableDefinitions = {}
+	const variables: CompanionVariableDefinitions = {
+		first_load_complete: { name: 'Router read completely since the last connect (true/false)' },
+	}
 
 	for (const level of Object.keys(self.data.l)) {
 		const ins = self.data.in[level] ?? {}
