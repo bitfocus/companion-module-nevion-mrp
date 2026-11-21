@@ -14,6 +14,9 @@ Module to control various Nevion Videohubs via the closed MRP protocol. It reads
 * Take
 * Clear
 
+**Reading the router**
+After connecting, the module reads every level's inputs, outputs, signal presence and crosspoints. It publishes the inputs and outputs in its actions, presets and variables once that read is complete, not one at a time. The variable `first_load_complete` is `false` from the connect until then, and `true` after it. If the router has not answered everything within the *Initial read timeout* (30 seconds by default), the module logs a warning, publishes what it has read and sets `first_load_complete` to `true`. A disconnect sets it back to `false` until the router has been read again.
+
 **Supported Feedback**
 * Feedback for all actions mentioned above
 

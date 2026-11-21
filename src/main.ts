@@ -46,6 +46,11 @@ interface LevelsInfo {
 	desc: string
 }
 
+// What the first load waits for: the level list, then per level the replies to these requests
+const LEVEL_REQUESTS = ['inlist', 'outlist', 'sspi', 'sspo', 's'] as const
+
+const DEFAULT_FIRST_LOAD_TIMEOUT_S = 30
+
 type XMap = Record<LevelId, Record<IoIndex, IoIndex>> // level -> output -> input
 type IoMap = Record<LevelId, Record<IoIndex, IoLabel>> // level -> index -> label
 type PresenceMap = Record<LevelId, Record<IoIndex, 'p' | 'm' | 'u'>> // p=present, m=missing, u=unknown
@@ -74,6 +79,12 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	private exportTimer?: NodeJS.Timeout
 	private pendingValues: CompanionVariableValues = {}
 	private pendingFeedbacks = new Set<string>()
+
+	// The first complete read of the router since connecting. Until it completes (or times out), the
+	// definitions are not rebuilt, so a consumer never sees a part-read list of inputs and outputs.
+	public firstLoadComplete = false
+	private awaitingReplies = new Set<string>()
+	private firstLoadTimer?: NodeJS.Timeout
 
 	public selectedDest: IoIndex = '0'
 	public queuedDest: IoIndex = '-1'
@@ -108,11 +119,13 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		this.updateFeedbacks()
 		this.updatePresets()
 		this.updateVariableDefinitions()
+		this.setVariableValues({ first_load_complete: this.firstLoadComplete })
 	}
 
 	async destroy(): Promise<void> {
 		this.stopPing()
 		this.stopXptPoll()
+		this.stopFirstLoad()
 		if (this.exportTimer) clearTimeout(this.exportTimer)
 		this.exportTimer = undefined
 
@@ -126,6 +139,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		this.stopXptPoll()
 		this.startXptPoll()
 		this.socket?.destroy()
+		this.resetFirstLoad()
 		await this.initConnection()
 		this.updateActions()
 		this.updateFeedbacks()
@@ -157,17 +171,25 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			return
 		}
 
-		this.socket = new TCPHelper(host, Number(port))
+		const socket = new TCPHelper(host, Number(port))
+		this.socket = socket
+		// A socket replaced by a config change can still report; only the current one counts
+		const isCurrent = () => this.socket === socket
 
-		this.socket.on('status_change', (status, message) => this.updateStatus(status, message))
+		socket.on('status_change', (status, message) => this.updateStatus(status, message))
 
-		this.socket.on('error', (err) => {
+		socket.on('error', (err) => {
 			this.log('error', `Network error: ${err?.message ?? err}`)
 			this.updateStatus(InstanceStatus.UnknownError, err?.message ?? 'Network error')
 			this.stopPing()
+			if (isCurrent()) this.resetFirstLoad()
 		})
 
-		this.socket.on('connect', () => {
+		socket.on('end', () => {
+			if (isCurrent()) this.resetFirstLoad()
+		})
+
+		socket.on('connect', () => {
 			this.data = { x: {}, in: {}, out: {}, sspi: {}, sspo: {}, l: {} }
 			this.delta = ''
 			this.messageQueue = []
@@ -178,6 +200,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 			this.updateStatus(InstanceStatus.Ok, 'Connected')
 
+			this.startFirstLoad()
 			this.sendLine('llist')
 			this.sendLine('syntax v3')
 
@@ -185,7 +208,57 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			this.startXptPoll()
 		})
 
-		this.socket.on('data', (buf) => this.onData(buf.toString('utf8')))
+		socket.on('data', (buf) => this.onData(buf.toString('utf8')))
+	}
+
+	private startFirstLoad(): void {
+		this.resetFirstLoad()
+		this.awaitingReplies = new Set(['llist'])
+		const seconds = Number(this.config.first_load_timeout) || DEFAULT_FIRST_LOAD_TIMEOUT_S
+		this.firstLoadTimer = setTimeout(() => {
+			this.firstLoadTimer = undefined
+			const missing = [...this.awaitingReplies]
+			this.log(
+				'warn',
+				`The router was not read completely within ${seconds} s of connecting, continuing with what was read. No reply yet to: ${missing.slice(0, 20).join(', ')}${missing.length > 20 ? ` and ${missing.length - 20} more` : ''}`,
+			)
+			this.completeFirstLoad()
+		}, seconds * 1000)
+	}
+
+	private stopFirstLoad(): void {
+		if (this.firstLoadTimer) clearTimeout(this.firstLoadTimer)
+		this.firstLoadTimer = undefined
+		this.awaitingReplies.clear()
+	}
+
+	// Disconnected, or about to read the router again: whatever was read is no longer the whole router
+	private resetFirstLoad(): void {
+		this.stopFirstLoad()
+		if (!this.firstLoadComplete) return
+		this.firstLoadComplete = false
+		this.setVariableValues({ first_load_complete: false })
+	}
+
+	// The router answers each request with one block headed `? "<request>"`, sent once the answer is whole
+	private noteReply(cmd: string): void {
+		if (this.firstLoadComplete || this.awaitingReplies.size === 0) return
+		const reply = cmd.match(/^\? "([a-z]+)(?:\s+([^"\s]+))?/)
+		if (!reply) return
+		const [, request, level] = reply
+		this.awaitingReplies.delete(level ? `${request} ${level}` : request)
+		if (this.awaitingReplies.size === 0) this.completeFirstLoad()
+	}
+
+	private completeFirstLoad(): void {
+		this.stopFirstLoad()
+		if (this.firstLoadComplete) return
+		this.firstLoadComplete = true
+		// Set before the definitions, so a consumer that reacts to them already sees the load as complete
+		this.setVariableValues({ first_load_complete: true })
+		if (this.exportTimer) clearTimeout(this.exportTimer)
+		this.exportTimer = undefined
+		this.exportAll()
 	}
 	private startXptPoll(): void {
 		this.stopXptPoll()
@@ -239,7 +312,9 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 			if (this.rxState === 'receiving') {
 				if (line === '') {
-					this.processNevionMessage(this.messageCommand.trim())
+					const message = this.messageCommand.trim()
+					this.processNevionMessage(message)
+					this.noteReply(message)
 					this.messageCommand = ''
 					this.rxState = 'idle'
 				} else {
@@ -365,6 +440,8 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 	private handleLogin(msg: string): void {
 		if (msg === '? "login"') {
+			// The router reads nothing out before the login, so the first load waits for it
+			if (!this.firstLoadComplete && this.firstLoadTimer) this.awaitingReplies.add('login ok')
 			const { user, pass } = this.config
 			if (user && pass) this.sendLine(`login ${user} ${pass}`)
 			else this.log('debug', 'No user/pass – anonymous')
@@ -376,6 +453,10 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		} else if (/login.+ok/i.test(msg)) {
 			this.log('debug', 'Login OK')
 
+			if (!this.firstLoadComplete && this.firstLoadTimer) {
+				this.awaitingReplies.delete('login ok')
+				this.awaitingReplies.add('llist')
+			}
 			this.sendLine('llist')
 			this.sendLine('syntax v3')
 		}
@@ -394,11 +475,10 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			const desc = parts.join(' ')
 			this.data.l[level] = { size, type, desc }
 
-			this.sendLine(`inlist ${level}`)
-			this.sendLine(`outlist ${level}`)
-			this.sendLine(`sspi ${level}`)
-			this.sendLine(`sspo ${level}`)
-			this.sendLine(`s ${level}`)
+			for (const request of LEVEL_REQUESTS) {
+				if (!this.firstLoadComplete && this.firstLoadTimer) this.awaitingReplies.add(`${request} ${level}`)
+				this.sendLine(`${request} ${level}`)
+			}
 		}
 
 		this.scheduleExport()
@@ -537,6 +617,9 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	}
 
 	private exportAll(): void {
+		// A part-read router is not published; the first load publishes it whole when it completes
+		if (!this.firstLoadComplete) return
+
 		const values: CompanionVariableValues = {}
 		let hasIO = false
 

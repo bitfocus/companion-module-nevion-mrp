@@ -11,6 +11,7 @@ export type ModuleConfig = {
 	use_long_names: boolean
 	poll_xpt: boolean
 	xpt_poll_interval: number
+	first_load_timeout?: number
 }
 
 export function GetConfigFields(): SomeCompanionConfigField[] {
@@ -36,6 +37,17 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			default: 10,
 			min: 2,
 			max: 120,
+			width: 3,
+		},
+		{
+			type: 'number',
+			id: 'first_load_timeout',
+			label: 'Initial read timeout (seconds)',
+			tooltip:
+				'How long to wait for the router to answer every request after connecting. The variable first_load_complete turns true when every answer is in, or when this time is up.',
+			default: 30,
+			min: 5,
+			max: 600,
 			width: 3,
 		},
 	]
